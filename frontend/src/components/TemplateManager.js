@@ -17,6 +17,7 @@ const TemplateManager = () => {
     index: 0
   });
   const [imageBase64, setImageBase64] = useState(null);
+  const [copiedCell, setCopiedCell] = useState(null); // 存储复制的格子
   const imageRef = useRef(null);
 
   // 获取模板列表
@@ -169,8 +170,8 @@ const TemplateManager = () => {
       index: currentCell.index,
       x: Math.round(x),
       y: Math.round(y),
-      width: Math.round(width),
-      height: Math.round(height)
+      width: copiedCell ? copiedCell.width : Math.round(width),
+      height: copiedCell ? copiedCell.height : Math.round(height)
     };
 
     setSelectedTemplate(prev => ({
@@ -194,6 +195,38 @@ const TemplateManager = () => {
       ...prev,
       cells: prev.cells.filter((_, i) => i !== cellIndex)
     }));
+  };
+
+  // 复制格子
+  const handleCopyCell = (cellIndex) => {
+    const cell = selectedTemplate.cells[cellIndex];
+    if (cell) {
+      setCopiedCell({
+        width: cell.width,
+        height: cell.height
+      });
+      setSuccess(`已复制格子尺寸: ${cell.width} x ${cell.height}`);
+      setTimeout(() => setSuccess(null), 2000);
+    }
+  };
+
+  // 粘贴格子尺寸
+  const handlePasteCell = () => {
+    if (!copiedCell) {
+      setError('没有复制的格子');
+      setTimeout(() => setError(null), 2000);
+      return;
+    }
+
+    setSuccess(`已应用格子尺寸: ${copiedCell.width} x ${copiedCell.height}`);
+    setTimeout(() => setSuccess(null), 2000);
+  };
+
+  // 清除粘贴板
+  const handleClearClipboard = () => {
+    setCopiedCell(null);
+    setSuccess('已清除粘贴板');
+    setTimeout(() => setSuccess(null), 2000);
   };
 
   // 清除所有格子
@@ -251,7 +284,7 @@ const TemplateManager = () => {
             </button>
 
             <button
-              className="button button-danger"
+              className="button button-success"
               onClick={handleClearCells}
             >
               清除格子
@@ -305,6 +338,24 @@ const TemplateManager = () => {
                 max="7"
                 style={{ width: '60px' }}
               />
+
+              <button
+                className="button button-info"
+                onClick={handlePasteCell}
+                title={copiedCell ? `粘贴尺寸: ${copiedCell.width} x ${copiedCell.height}` : '粘贴格子尺寸'}
+              >
+                {copiedCell ? `粘贴 (${copiedCell.width}x${copiedCell.height})` : '粘贴'}
+              </button>
+
+              {copiedCell && (
+                <button
+                  className="button button-secondary"
+                  onClick={handleClearClipboard}
+                  title="清除粘贴板"
+                >
+                  清除
+                </button>
+              )}
             </>
           )}
         </div>
@@ -350,19 +401,37 @@ const TemplateManager = () => {
                 {cell.day}-{cell.index}
               </div>
               {mode === 'mark' && (
+                <>
                 <button
-                  className="button button-danger"
+                  className="button button-success"
                   style={{ 
                     position: 'absolute', 
                     top: '-10px', 
-                    right: '-10px',
+                    left: '-10px',
                     padding: '2px 6px',
-                    fontSize: '12px'
+                    fontSize: '12px',
+                    zIndex: 2
                   }}
-                  onClick={() => handleDeleteCell(index)}
+                  onClick={() => handleCopyCell(index)}
+                    title="复制格子尺寸"
+                  >
+                    📋
+                  </button>
+                  <button
+                    className="button button-danger"
+                    style={{
+                      position: 'absolute',
+                      top: '-10px',
+                      right: '-10px',
+                      padding: '2px 6px',
+                      fontSize: '12px',
+                      zIndex: 2
+                    }}
+                    onClick={() => handleDeleteCell(index)}
                 >
                   ×
                 </button>
+                </>
               )}
             </div>
           ))}

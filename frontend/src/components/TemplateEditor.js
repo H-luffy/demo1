@@ -10,7 +10,22 @@ const TemplateEditor = () => {
   const [error, setError] = useState(null);
   const [cellContents, setCellContents] = useState({});
   const [imageBase64, setImageBase64] = useState(null);
+  const [copiedContent, setCopiedContent] = useState(null); // 存储复制的内容
   const editorRef = useRef(null);
+
+  // 添加样式
+  useEffect(() => {
+    const style = document.createElement('style');
+    style.textContent = `
+      .cell:hover .cell-actions {
+        opacity: 1 !important;
+      }
+    `;
+    document.head.appendChild(style);
+    return () => {
+      document.head.removeChild(style);
+    };
+  }, []);
 
   // 获取模板数据
   useEffect(() => {
@@ -51,6 +66,40 @@ const TemplateEditor = () => {
     setCellContents(prev => ({
       ...prev,
       [cellKey]: value
+    }));
+  };
+
+  // 复制格子内容
+  const handleCopyContent = (cellKey) => {
+    const content = cellContents[cellKey];
+    if (content) {
+      setCopiedContent(content);
+      // 显示提示信息
+      const input = document.getElementById(`cell-${cellKey}`);
+      if (input) {
+        input.placeholder = '已复制';
+        setTimeout(() => {
+          input.placeholder = '输入课程';
+        }, 1500);
+      }
+    }
+  };
+
+  // 粘贴格子内容
+  const handlePasteContent = (cellKey) => {
+    if (copiedContent) {
+      setCellContents(prev => ({
+        ...prev,
+        [cellKey]: copiedContent
+      }));
+    }
+  };
+
+  // 清除格子内容
+  const handleClearContent = (cellKey) => {
+    setCellContents(prev => ({
+      ...prev,
+      [cellKey]: ''
     }));
   };
 
@@ -292,6 +341,64 @@ const TemplateEditor = () => {
                   justifyContent: 'center'
                 }}
               />
+              <div
+                style={{
+                  position: 'absolute',
+                  top: '-20px',
+                  right: '0',
+                  display: 'flex',
+                  gap: '4px',
+                  opacity: 0,
+                  transition: 'opacity 0.2s'
+                }}
+                className="cell-actions"
+              >
+                <button
+                  onClick={() => handleCopyContent(cellKey)}
+                  style={{
+                    padding: '2px 6px',
+                    fontSize: '12px',
+                    cursor: 'pointer',
+                    background: '#4CAF50',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '3px'
+                  }}
+                  title="复制内容"
+                >
+                  📋
+                </button>
+                <button
+                  onClick={() => handlePasteContent(cellKey)}
+                  style={{
+                    padding: '2px 6px',
+                    fontSize: '12px',
+                    cursor: 'pointer',
+                    background: '#2196F3',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '3px'
+                  }}
+                  title="粘贴内容"
+                >
+                  📝
+                </button>
+                <button
+                  onClick={() => handleClearContent(cellKey)}
+                  style={{
+                    padding: '2px 6px',
+                    fontSize: '12px',
+                    cursor: 'pointer',
+                    background: '#f44336',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '3px'
+                  }}
+                  title="清除内容"
+                >
+                  ×
+                </button>
+              </div>
             </div>
           );
         })}
