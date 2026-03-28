@@ -1,0 +1,273 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background-color: #f5f5f5;
+}
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+.header {
+  background-color: #1976d2;
+  color: white;
+  padding: 20px;
+  margin-bottom: 20px;
+  border-radius: 4px;
+}
+
+.header h1 {
+  font-size: 24px;
+  margin-bottom: 10px;
+}
+
+.header nav {
+  display: flex;
+  gap: 20px;
+}
+
+.header nav a {
+  color: white;
+  text-decoration: none;
+  padding: 8px 16px;
+  border-radius: 4px;
+  transition: background-color 0.3s;
+}
+
+.header nav a:hover {
+  background-color: rgba(255, 255, 255, 0.2);
+}
+
+.button {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background-color 0.3s;
+}
+
+.button-primary {
+  background-color: #1976d2;
+  color: white;
+}
+
+.button-primary:hover {
+  background-color: #1565c0;
+}
+
+.button-secondary {
+  background-color: #757575;
+  color: white;
+}
+
+.button-secondary:hover {
+  background-color: #616161;
+}
+
+.button-success {
+  background-color: #4caf50;
+  color: white;
+}
+
+.button-success:hover {
+  background-color: #388e3c;
+}
+
+.button-danger {
+  background-color: #f44336;
+  color: white;
+}
+
+.button-danger:hover {
+  background-color: #d32f2f;
+}
+
+.form-group {
+  margin-bottom: 15px;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 5px;
+  font-weight: bold;
+}
+
+.form-group input,
+.form-group select {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 14px;
+}
+
+.card {
+  background-color: white;
+  border-radius: 4px;
+  padding: 20px;
+  margin-bottom: 20px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.template-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 20px;
+}
+
+.template-card {
+  background-color: white;
+  border-radius: 4px;
+  overflow: hidden;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  transition: transform 0.3s;
+}
+
+.template-card:hover {
+  transform: translateY(-5px);
+}
+
+.template-card img {
+  width: 100%;
+  height: 200px;
+  object-fit: cover;
+}
+
+.template-card-body {
+  padding: 15px;
+}
+
+.template-card-title {
+  font-size: 16px;
+  font-weight: bold;
+  margin-bottom: 10px;
+}
+
+.template-card-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.template-editor {
+  position: relative;
+  display: inline-block;
+}
+
+.template-editor img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+}
+
+.cell {
+  position: absolute;
+  border: 2px solid #1976d2;
+  background-color: rgba(25, 118, 210, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: move;
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+.cell input {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: 100%;
+  height: 100%;
+  border: none;
+  background: transparent !important;
+  text-align: center;
+  font-size: 14px;
+  padding: 5px;
+  color: #000;
+  font-family: Arial, sans-serif;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+  box-sizing: border-box;
+  outline: none;
+}
+
+.cell textarea {
+  width: 100%;
+  height: 100%;
+  border: none;
+  background: transparent;
+  text-align: center;
+  font-size: 14px;
+  padding: 5px;
+  resize: none;
+}
+
+.selection-box {
+  position: absolute;
+  border: 2px dashed #f44336;
+  background-color: rgba(244, 67, 54, 0.1);
+  pointer-events: none;
+}
+
+.toolbar {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 20px;
+  align-items: center;
+}
+
+.toolbar .mode-indicator {
+  padding: 5px 10px;
+  border-radius: 4px;
+  font-size: 14px;
+  font-weight: bold;
+}
+
+.mode-indicator.edit {
+  background-color: #4caf50;
+  color: white;
+}
+
+.mode-indicator.mark {
+  background-color: #f44336;
+  color: white;
+}
+
+.loading {
+  text-align: center;
+  padding: 40px;
+  color: #757575;
+}
+
+.error {
+  color: #f44336;
+  padding: 10px;
+  background-color: #ffebee;
+  border-radius: 4px;
+  margin-bottom: 20px;
+}
+
+.success {
+  color: #4caf50;
+  padding: 10px;
+  background-color: #e8f5e9;
+  border-radius: 4px;
+  margin-bottom: 20px;
+}
