@@ -2,6 +2,9 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import axios from 'axios';
 import html2canvas from 'html2canvas';
+import { Button } from './ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
+import { Copy, Trash2, Save, Download, Home } from 'lucide-react';
 
 const TemplateEditor = () => {
   const { id } = useParams();
@@ -270,11 +273,14 @@ const TemplateEditor = () => {
       {error && <div className="error">{error}</div>}
 
       <div className="toolbar">
-        <Link to="/" className="button button-secondary">
-          返回列表
+        <Link to="/">
+          <Button variant="secondary" className="gap-2">
+            <Home className="h-4 w-4" />
+            返回列表
+          </Button>
         </Link>
         <button 
-          className="button button-success"
+          className="bg-green-600 text-white hover:bg-green-700"
           onClick={handleExport}
         >
           导出图片

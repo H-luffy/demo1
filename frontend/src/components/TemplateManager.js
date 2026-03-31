@@ -18,6 +18,8 @@ const TemplateManager = () => {
   });
   const [imageBase64, setImageBase64] = useState(null);
   const [copiedCell, setCopiedCell] = useState(null); // 存储复制的格子
+  const [templateName, setTemplateName] = useState(''); // 模板名称
+  const [showNameInput, setShowNameInput] = useState(false); // 是否显示名称输入框
   const imageRef = useRef(null);
 
   // 获取模板列表
@@ -39,11 +41,24 @@ const TemplateManager = () => {
     const file = e.target.files[0];
     if (!file) return;
 
+    // 显示名称输入框
+    setShowNameInput(true);
+    setTemplateName(file.name.replace(/\.[^.]+$/, '')); // 默认使用文件名
+  };
+
+  // 确认上传
+  const handleConfirmUpload = async () => {
+    const fileInput = document.getElementById('upload-input');
+    const file = fileInput.files[0];
+    if (!file) return;
+
     const formData = new FormData();
     formData.append('image', file);
+    formData.append('name', templateName.trim() || '未命名模板');
 
     setLoading(true);
     setError(null);
+    setShowNameInput(false);
 
     try {
       const response = await axios.post('/api/upload-template', formData, {
@@ -62,10 +77,17 @@ const TemplateManager = () => {
       await handleSelectTemplate(response.data.templateId);
 
       setLoading(false);
+      setTemplateName('');
     } catch (err) {
       setError('上传失败');
       setLoading(false);
     }
+  };
+
+  // 取消上传
+  const handleCancelUpload = () => {
+    setShowNameInput(false);
+    setTemplateName('');
   };
 
   // 选择模板
@@ -260,6 +282,38 @@ const TemplateManager = () => {
           上传新模板
         </label>
 
+        {showNameInput && (
+          <div className="name-input-modal">
+            <div className="name-input-content">
+              <h3>为模板命名</h3>
+              <input
+                type="text"
+                value={templateName}
+                onChange={(e) => setTemplateName(e.target.value)}
+                placeholder="请输入模板名称"
+                autoFocus
+                maxLength={50}
+              />
+              <div className="name-input-buttons">
+                <button
+                  className="button button-secondary"
+                  onClick={handleCancelUpload}
+                  disabled={loading}
+                >
+                  取消
+                </button>
+                <button
+                  className="button button-primary"
+                  onClick={handleConfirmUpload}
+                  disabled={loading || !templateName.trim()}
+                >
+                  {loading ? '上传中...' : '确认上传'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
         <select
           value={selectedTemplate?.templateId || ''}
           onChange={(e) => handleSelectTemplate(e.target.value)}
@@ -268,7 +322,7 @@ const TemplateManager = () => {
           <option value="">选择模板</option>
           {templates.map(template => (
             <option key={template.templateId} value={template.templateId}>
-              模板 #{template.templateId} ({template.cellsCount} 个格子)
+              {template.name || `模板 #${template.templateId}`} ({template.cellsCount} 个格子)
             </option>
           ))}
         </select>
