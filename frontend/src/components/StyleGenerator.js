@@ -1,4 +1,4 @@
-﻿import React, { useState } from 'react';
+import React, { useState } from 'react';
 import axios from 'axios';
 import { Upload, Wand2, Download, Loader2 } from 'lucide-react';
 import { Button } from './ui/button';
@@ -321,13 +321,13 @@ const StyleGenerator = () => {
 
   return (
     <div className="style-generator">
-      <Card className="p-6">
-        <h2 className="text-2xl font-bold mb-6">课表风格生成器</h2>
+      <Card className="p-8 max-w-5xl mx-auto">
+        <h2 className="text-2xl font-bold mb-8 text-gray-900">✨ 课表风格生成器</h2>
 
         <div className="space-y-6">
           <div>
-            <label className="block text-sm font-medium mb-2">上传课表图片</label>
-            <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-blue-400 hover:bg-blue-50 transition-all">
+            <label className="block text-sm font-semibold mb-3 text-gray-700">上传课表图片</label>
+            <div className="border-2 border-dashed border-gray-300 rounded-xl p-10 text-center hover:border-purple-400 hover:bg-purple-50 transition-all cursor-pointer">
               <input
                 type="file"
                 id="image-upload"
@@ -336,8 +336,8 @@ const StyleGenerator = () => {
                 className="hidden"
               />
               <label htmlFor="image-upload" className="cursor-pointer flex flex-col items-center">
-                <Upload className="w-12 h-12 text-gray-400 mb-2" />
-                <span className="text-sm text-gray-600 mb-1">点击或拖拽上传课表图片</span>
+                <Upload className="w-12 h-12 text-gray-400 mb-3" />
+                <span className="text-sm text-gray-700 font-medium mb-1">点击或拖拽上传课表图片</span>
                 <span className="text-xs text-gray-500">支持 JPG、PNG 等常见格式</span>
               </label>
             </div>
@@ -345,23 +345,23 @@ const StyleGenerator = () => {
 
           {previewUrl && (
             <div>
-              <label className="block text-sm font-medium mb-2">原始图片</label>
-              <img src={previewUrl} alt="课表预览" className="max-w-full h-auto rounded-lg border" />
+              <label className="block text-sm font-semibold mb-3 text-gray-700">原始图片预览</label>
+              <img src={previewUrl} alt="课表预览" className="max-w-full h-auto rounded-xl border-2 border-gray-200 shadow-sm" />
             </div>
           )}
 
           <div>
-            <label className="block text-sm font-medium mb-2">风格描述</label>
+            <label className="block text-sm font-semibold mb-3 text-gray-700">风格描述</label>
             <textarea
               value={stylePrompt}
               onChange={(event) => setStylePrompt(event.target.value)}
               rows={6}
-              className="w-full p-3 border rounded-lg resize-y"
+              className="w-full p-4 border-2 border-gray-200 rounded-xl resize-y focus:border-purple-500 focus:ring-2 focus:ring-purple-200 transition-all"
               placeholder="例如：科技感、蓝青色霓虹、高对比。背景深黑，表格边框和装饰线条像数字仪表盘一样发光，整体有未来科技面板感，但课表文字必须清晰、工整、可直接阅读。"
             />
-            <div className="mt-3 p-3 bg-blue-50 rounded-lg">
-              <p className="text-sm font-medium text-blue-900 mb-1">💡 使用小贴士：</p>
-              <ul className="text-sm text-blue-800 space-y-1">
+            <div className="mt-4 p-4 bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl border border-blue-100">
+              <p className="text-sm font-semibold text-blue-900 mb-2">💡 使用小贴士：</p>
+              <ul className="text-sm text-blue-800 space-y-1.5">
                 <li>• 描述越具体，效果越精准（如："深蓝背景"比"蓝色"更好）</li>
                 <li>• 可以参考预设风格，在此基础上修改</li>
                 <li>• 强调"文字清晰"可提高可读性</li>
@@ -370,17 +370,17 @@ const StyleGenerator = () => {
             </div>
           </div>
 
-          <div className="rounded-lg border border-blue-200 p-4 bg-blue-50 space-y-4">
+          <div className="rounded-xl border-2 border-purple-200 p-5 bg-gradient-to-r from-purple-50 to-pink-50 space-y-3">
             <label className="flex items-start gap-3 cursor-pointer">
               <input
                 type="checkbox"
                 checked={preserveTextClarity}
                 onChange={(event) => setPreserveTextClarity(event.target.checked)}
-                className="mt-1"
+                className="mt-1 w-4 h-4 text-purple-600 rounded focus:ring-purple-500"
               />
               <span>
-                <span className="block text-sm font-medium text-gray-900">✨ 文字清晰增强</span>
-                <span className="block text-sm text-gray-600">
+                <span className="block text-sm font-semibold text-gray-900">✨ 文字清晰增强</span>
+                <span className="block text-sm text-gray-700">
                   智能优化文字清晰度，增强对比度，确保文字在任何背景下都清晰可读。推荐开启！
                 </span>
               </span>
@@ -388,14 +388,14 @@ const StyleGenerator = () => {
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-2">🎨 快捷风格</label>
-            <div className="flex flex-wrap gap-2">
+            <label className="block text-sm font-semibold mb-3 text-gray-700">🎨 快捷风格预设</label>
+            <div className="flex flex-wrap gap-2.5">
               {presetStyles.map((preset) => (
                 <button
                   key={preset}
                   type="button"
                   onClick={() => applyPresetStyle(preset)}
-                  className="px-4 py-2 text-sm border-2 border-blue-200 rounded-full hover:border-blue-400 hover:bg-blue-50 hover:shadow-md transition-all"
+                  className="px-4 py-2.5 text-sm border-2 border-purple-200 rounded-full hover:border-purple-400 hover:bg-purple-50 hover:shadow-md transition-all font-medium text-gray-700"
                 >
                   {preset}
                 </button>
@@ -403,7 +403,11 @@ const StyleGenerator = () => {
             </div>
           </div>
 
-          <Button onClick={handleGenerate} disabled={!selectedFile || isGenerating} className="w-full bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-medium py-3">
+          <Button 
+            onClick={handleGenerate} 
+            disabled={!selectedFile || isGenerating} 
+            className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-semibold py-4 text-base shadow-lg hover:shadow-xl transition-all transform hover:-translate-y-0.5"
+          >
             {isGenerating ? (
               <>
                 <Loader2 className="w-5 h-5 mr-2 animate-spin" />
@@ -418,50 +422,50 @@ const StyleGenerator = () => {
           </Button>
 
           {error && (
-            <div className="text-red-500 text-sm bg-red-50 p-3 rounded-lg">
+            <div className="text-red-600 text-sm bg-red-50 p-4 rounded-xl border border-red-200">
               {error}
             </div>
           )}
 
           {result && (
-            <div className="space-y-4">
-              <div className="flex items-center gap-2">
-                <div className="w-1 h-6 bg-gradient-to-b from-blue-500 to-purple-600 rounded-full"></div>
+            <div className="space-y-5 pt-6 border-t-2 border-gray-200">
+              <div className="flex items-center gap-3">
+                <div className="w-1.5 h-8 bg-gradient-to-b from-purple-500 to-pink-600 rounded-full"></div>
                 <h3 className="text-xl font-bold text-gray-900">✨ 生成结果</h3>
               </div>
 
               {result.analysis && (
-                <div className="rounded-lg border border-gray-200 bg-white p-4 space-y-3">
+                <div className="rounded-xl border-2 border-gray-200 bg-white p-5 space-y-4 shadow-sm">
                   <div>
-                    <p className="text-sm font-medium text-gray-900">需求拆解</p>
-                    <p className="text-sm text-gray-600 mt-1">{result.analysis.summary}</p>
+                    <p className="text-sm font-semibold text-gray-900">需求拆解</p>
+                    <p className="text-sm text-gray-700 mt-2 leading-relaxed">{result.analysis.summary}</p>
                   </div>
 
                   <div className="grid gap-3 md:grid-cols-2">
-                    <div className="rounded-md bg-gray-50 p-3">
-                      <p className="text-sm font-medium text-gray-900">风格关键词</p>
-                      <p className="text-sm text-gray-600 mt-1">{renderAnalysisList(result.analysis.styleKeywords)}</p>
+                    <div className="rounded-lg bg-gradient-to-br from-gray-50 to-gray-100 p-4 border border-gray-200">
+                      <p className="text-sm font-semibold text-gray-900">风格关键词</p>
+                      <p className="text-sm text-gray-700 mt-2 leading-relaxed">{renderAnalysisList(result.analysis.styleKeywords)}</p>
                     </div>
-                    <div className="rounded-md bg-gray-50 p-3">
-                      <p className="text-sm font-medium text-gray-900">色彩方案</p>
-                      <p className="text-sm text-gray-600 mt-1">{renderAnalysisList(result.analysis.colorPalette)}</p>
+                    <div className="rounded-lg bg-gradient-to-br from-gray-50 to-gray-100 p-4 border border-gray-200">
+                      <p className="text-sm font-semibold text-gray-900">色彩方案</p>
+                      <p className="text-sm text-gray-700 mt-2 leading-relaxed">{renderAnalysisList(result.analysis.colorPalette)}</p>
                     </div>
-                    <div className="rounded-md bg-gray-50 p-3">
-                      <p className="text-sm font-medium text-gray-900">视觉效果</p>
-                      <p className="text-sm text-gray-600 mt-1">{renderAnalysisList(result.analysis.lightingEffects)}</p>
+                    <div className="rounded-lg bg-gradient-to-br from-gray-50 to-gray-100 p-4 border border-gray-200">
+                      <p className="text-sm font-semibold text-gray-900">视觉效果</p>
+                      <p className="text-sm text-gray-700 mt-2 leading-relaxed">{renderAnalysisList(result.analysis.lightingEffects)}</p>
                     </div>
-                    <div className="rounded-md bg-gray-50 p-3">
-                      <p className="text-sm font-medium text-gray-900">构图细节</p>
-                      <p className="text-sm text-gray-600 mt-1">{renderAnalysisList(result.analysis.compositionDetails)}</p>
+                    <div className="rounded-lg bg-gradient-to-br from-gray-50 to-gray-100 p-4 border border-gray-200">
+                      <p className="text-sm font-semibold text-gray-900">构图细节</p>
+                      <p className="text-sm text-gray-700 mt-2 leading-relaxed">{renderAnalysisList(result.analysis.compositionDetails)}</p>
                     </div>
                   </div>
 
-                  <div className="rounded-md bg-slate-950 p-3">
-                    <p className="text-sm font-medium text-cyan-200">最终 Prompt</p>
-                    <p className="text-sm text-slate-200 mt-2 leading-6 break-words">{result.optimizedPrompt}</p>
+                  <div className="rounded-lg bg-gradient-to-br from-slate-900 to-slate-800 p-4 border border-slate-700">
+                    <p className="text-sm font-semibold text-cyan-300">最终 Prompt</p>
+                    <p className="text-sm text-slate-100 mt-3 leading-7 break-words font-mono">{result.optimizedPrompt}</p>
                   </div>
 
-                  <p className="text-xs text-gray-500">
+                  <p className="text-xs text-gray-500 italic">
                     分析来源：{result.analysisSource === 'qwen' ? 'AI 深度分析 + 本地兜底' : '本地规则兜底分析'}
                   </p>
                 </div>
@@ -470,14 +474,17 @@ const StyleGenerator = () => {
               <img
                 src={result.enhancedImage || result.styledImage}
                 alt="风格化课表"
-                className="max-w-full h-auto rounded-lg border"
+                className="max-w-full h-auto rounded-xl border-2 border-gray-200 shadow-lg"
               />
 
-              <p className="text-sm text-gray-500">
-                {preserveTextClarity ? '当前展示的是增强后的结果图。' : '当前展示的是 AI 原始结果图。'}
+              <p className="text-sm text-gray-600 italic">
+                {preserveTextClarity ? '✅ 当前展示的是增强后的结果图，文字更清晰。' : '当前展示的是 AI 原始结果图。'}
               </p>
 
-              <Button onClick={handleDownload} className="w-full bg-gradient-to-r from-green-500 to-teal-600 hover:from-green-600 hover:to-teal-700 text-white font-medium py-3">
+              <Button 
+                onClick={handleDownload} 
+                className="w-full bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-semibold py-4 text-base shadow-lg hover:shadow-xl transition-all transform hover:-translate-y-0.5"
+              >
                 <Download className="w-5 h-5 mr-2" />
                 📥 下载高清图片
               </Button>

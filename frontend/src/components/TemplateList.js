@@ -72,7 +72,7 @@ const TemplateList = () => {
 
   return (
     <div className="card">
-      <h2>选择模板</h2>
+      <h2 style={{ fontSize: '18px', fontWeight: '600', marginBottom: '24px', color: '#2d3748' }}>选择模板</h2>
       <div className="template-grid">
         {templates.map(template => (
           <div key={template.templateId} className="template-card">
@@ -82,12 +82,13 @@ const TemplateList = () => {
             />
             <div className="template-card-body">
               <div className="template-card-title">
-                模板 #{template.templateId}
+                {template.name || `模板 #${template.templateId}`}
               </div>
               <div className="template-card-actions">
                 <Link 
                   to={`/editor/${template.templateId}`}
                   className="button button-primary"
+                  style={{ flex: 1, justifyContent: 'center' }}
                 >
                   编辑课表
                 </Link>

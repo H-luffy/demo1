@@ -2,5 +2,30 @@
   "templateId": 1,
   "name": "9443915_172825452122_2",
   "image": "/uploads/template-1774873167392-170772648.jpg",
-  "cells": []
+  "cells": [
+    {
+      "day": "mon",
+      "index": 0,
+      "x": 375,
+      "y": 252,
+      "width": 62,
+      "height": 33
+    },
+    {
+      "day": "mon",
+      "index": 1,
+      "x": 376,
+      "y": 300,
+      "width": 64,
+      "height": 33
+    },
+    {
+      "day": "mon",
+      "index": 2,
+      "x": 374,
+      "y": 351,
+      "width": 72,
+      "height": 31
+    }
+  ]
 }

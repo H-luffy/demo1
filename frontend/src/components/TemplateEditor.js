@@ -261,30 +261,43 @@ const TemplateEditor = () => {
   };
 
   if (loading) {
-    return <div className="loading">加载中...</div>;
+    return (
+      <div className="card">
+        <div className="loading">加载中...</div>
+      </div>
+    );
   }
 
-  if (!template) {
-    return <div className="error">模板不存在</div>;
+  if (error) {
+    return (
+      <div className="card">
+        <div className="error">{error}</div>
+      </div>
+    );
   }
 
   return (
     <div className="card">
-      {error && <div className="error">{error}</div>}
-
-      <div className="toolbar">
-        <Link to="/">
-          <Button variant="secondary" className="gap-2">
-            <Home className="h-4 w-4" />
-            返回列表
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+        <h2 style={{ fontSize: '18px', fontWeight: '600', color: '#2d3748' }}>
+          编辑课表 - 模板 #{id}
+        </h2>
+        <div style={{ display: 'flex', gap: '8px' }}>
+          <Link to="/">
+            <Button variant="secondary" size="sm">
+              <Home className="h-4 w-4 mr-1" />
+              返回首页
+            </Button>
+          </Link>
+          <Button 
+            variant="success" 
+            size="sm"
+            onClick={handleExport}
+          >
+            <Download className="h-4 w-4 mr-1" />
+            导出图片
           </Button>
-        </Link>
-        <button 
-          className="bg-green-600 text-white hover:bg-green-700"
-          onClick={handleExport}
-        >
-          导出图片
-        </button>
+        </div>
       </div>
 
       <div 
@@ -336,7 +349,7 @@ const TemplateEditor = () => {
                   background: 'transparent',
                   textAlign: 'center',
                   fontSize: '14px',
-                  color: '#000',
+                  color: '#2d3748',
                   fontFamily: 'Arial, sans-serif',
                   padding: '5px',
                   margin: 0,
@@ -344,13 +357,14 @@ const TemplateEditor = () => {
                   outline: 'none',
                   display: 'flex',
                   alignItems: 'center',
-                  justifyContent: 'center'
+                  justifyContent: 'center',
+                  fontWeight: '500'
                 }}
               />
               <div
                 style={{
                   position: 'absolute',
-                  top: '-20px',
+                  top: '-24px',
                   right: '0',
                   display: 'flex',
                   gap: '4px',
@@ -362,13 +376,14 @@ const TemplateEditor = () => {
                 <button
                   onClick={() => handleCopyContent(cellKey)}
                   style={{
-                    padding: '2px 6px',
+                    padding: '4px 8px',
                     fontSize: '12px',
                     cursor: 'pointer',
-                    background: '#4CAF50',
+                    background: 'linear-gradient(135deg, #48bb78, #38a169)',
                     color: 'white',
                     border: 'none',
-                    borderRadius: '3px'
+                    borderRadius: '4px',
+                    boxShadow: '0 1px 3px rgba(0,0,0,0.2)'
                   }}
                   title="复制内容"
                 >
@@ -377,13 +392,14 @@ const TemplateEditor = () => {
                 <button
                   onClick={() => handlePasteContent(cellKey)}
                   style={{
-                    padding: '2px 6px',
+                    padding: '4px 8px',
                     fontSize: '12px',
                     cursor: 'pointer',
-                    background: '#2196F3',
+                    background: 'linear-gradient(135deg, #63b3ed, #4299e1)',
                     color: 'white',
                     border: 'none',
-                    borderRadius: '3px'
+                    borderRadius: '4px',
+                    boxShadow: '0 1px 3px rgba(0,0,0,0.2)'
                   }}
                   title="粘贴内容"
                 >
@@ -392,17 +408,18 @@ const TemplateEditor = () => {
                 <button
                   onClick={() => handleClearContent(cellKey)}
                   style={{
-                    padding: '2px 6px',
+                    padding: '4px 8px',
                     fontSize: '12px',
                     cursor: 'pointer',
-                    background: '#f44336',
+                    background: 'linear-gradient(135deg, #fc8181, #f56565)',
                     color: 'white',
                     border: 'none',
-                    borderRadius: '3px'
+                    borderRadius: '4px',
+                    boxShadow: '0 1px 3px rgba(0,0,0,0.2)'
                   }}
                   title="清除内容"
                 >
-                  ×
+                  ✕
                 </button>
               </div>
             </div>

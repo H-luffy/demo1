@@ -265,7 +265,7 @@ const TemplateManager = () => {
 
   return (
     <div className="card">
-      <h2>模板管理</h2>
+      <h2 style={{ fontSize: '18px', fontWeight: '600', marginBottom: '24px', color: '#2d3748' }}>模板管理</h2>
 
       {error && <div className="error">{error}</div>}
       {success && <div className="success">{success}</div>}
@@ -279,7 +279,7 @@ const TemplateManager = () => {
           id="upload-input"
         />
         <label htmlFor="upload-input" className="button button-primary">
-          上传新模板
+          📤 上传新模板
         </label>
 
         {showNameInput && (
@@ -317,7 +317,7 @@ const TemplateManager = () => {
         <select
           value={selectedTemplate?.templateId || ''}
           onChange={(e) => handleSelectTemplate(e.target.value)}
-          className="form-group"
+          style={{ padding: '8px 12px', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '14px', minWidth: '200px' }}
         >
           <option value="">选择模板</option>
           {templates.map(template => (
@@ -334,14 +334,14 @@ const TemplateManager = () => {
               onClick={handleSave}
               disabled={loading}
             >
-              保存配置
+              💾 保存配置
             </button>
 
             <button
-              className="button button-success"
+              className="button button-secondary"
               onClick={handleClearCells}
             >
-              清除格子
+              🗑️ 清除所有
             </button>
           </>
         )}
@@ -349,68 +349,80 @@ const TemplateManager = () => {
         {selectedTemplate && (
           <div className="mode-indicator">
             <span className={`mode-indicator ${mode}`}>
-              {mode === 'view' ? '查看模式' : '标记模式'}
+              {mode === 'view' ? '👁️ 查看模式' : '✏️ 标记模式'}
             </span>
           </div>
         )}
       </div>
 
       {selectedTemplate && (
-        <div className="toolbar">
-          <button
-            className={`button ${mode === 'view' ? 'button-primary' : 'button-secondary'}`}
-            onClick={() => setMode('view')}
-          >
-            查看模式
-          </button>
+        <div className="toolbar" style={{ justifyContent: 'space-between' }}>
+          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+            <button
+              className={`button ${mode === 'view' ? 'button-primary' : 'button-secondary'}`}
+              onClick={() => setMode('view')}
+            >
+              👁️ 查看
+            </button>
 
-          <button
-            className={`button ${mode === 'mark' ? 'button-primary' : 'button-secondary'}`}
-            onClick={() => setMode('mark')}
-          >
-            标记模式
-          </button>
+            <button
+              className={`button ${mode === 'mark' ? 'button-primary' : 'button-secondary'}`}
+              onClick={() => setMode('mark')}
+            >
+              ✏️ 标记
+            </button>
+
+            {mode === 'mark' && (
+              <>
+                <select
+                  value={currentCell.day}
+                  onChange={(e) => setCurrentCell(prev => ({ ...prev, day: e.target.value }))}
+                  style={{ padding: '6px 10px', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '13px' }}
+                >
+                  <option value="mon">周一</option>
+                  <option value="tue">周二</option>
+                  <option value="wed">周三</option>
+                  <option value="thu">周四</option>
+                  <option value="fri">周五</option>
+                </select>
+
+                <input
+                  type="number"
+                  value={currentCell.index}
+                  onChange={(e) => setCurrentCell(prev => ({ ...prev, index: parseInt(e.target.value) }))}
+                  min="0"
+                  max="7"
+                  placeholder="节次"
+                  style={{ width: '70px', padding: '6px 10px', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '13px' }}
+                />
+
+                <button
+                  className="button button-info"
+                  onClick={handlePasteCell}
+                  title={copiedCell ? `粘贴尺寸：${copiedCell.width} x ${copiedCell.height}` : '粘贴格子尺寸'}
+                  style={{ fontSize: '13px' }}
+                >
+                  📋 {copiedCell ? `${copiedCell.width}×${copiedCell.height}` : '粘贴'}
+                </button>
+
+                {copiedCell && (
+                  <button
+                    className="button button-secondary"
+                    onClick={handleClearClipboard}
+                    title="清除粘贴板"
+                    style={{ fontSize: '13px' }}
+                  >
+                    清除
+                  </button>
+                )}
+              </>
+            )}
+          </div>
 
           {mode === 'mark' && (
-            <>
-              <select
-                value={currentCell.day}
-                onChange={(e) => setCurrentCell(prev => ({ ...prev, day: e.target.value }))}
-              >
-                <option value="mon">周一</option>
-                <option value="tue">周二</option>
-                <option value="wed">周三</option>
-                <option value="thu">周四</option>
-                <option value="fri">周五</option>
-              </select>
-
-              <input
-                type="number"
-                value={currentCell.index}
-                onChange={(e) => setCurrentCell(prev => ({ ...prev, index: parseInt(e.target.value) }))}
-                min="0"
-                max="7"
-                style={{ width: '60px' }}
-              />
-
-              <button
-                className="button button-info"
-                onClick={handlePasteCell}
-                title={copiedCell ? `粘贴尺寸: ${copiedCell.width} x ${copiedCell.height}` : '粘贴格子尺寸'}
-              >
-                {copiedCell ? `粘贴 (${copiedCell.width}x${copiedCell.height})` : '粘贴'}
-              </button>
-
-              {copiedCell && (
-                <button
-                  className="button button-secondary"
-                  onClick={handleClearClipboard}
-                  title="清除粘贴板"
-                >
-                  清除
-                </button>
-              )}
-            </>
+            <div style={{ fontSize: '13px', color: '#718096' }}>
+              💡 提示：在图片上拖拽创建格子区域
+            </div>
           )}
         </div>
       )}
@@ -448,25 +460,30 @@ const TemplateManager = () => {
                 top: cell.y,
                 width: cell.width,
                 height: cell.height,
-                borderColor: mode === 'mark' ? '#f44336' : '#1976d2'
+                borderColor: mode === 'mark' ? '#f56565' : '#667eea',
+                backgroundColor: mode === 'mark' 
+                  ? 'rgba(245, 101, 101, 0.1)' 
+                  : 'rgba(102, 126, 234, 0.08)'
               }}
             >
-              <div style={{ fontSize: '12px', color: '#757575' }}>
-                {cell.day}-{cell.index}
+              <div style={{ fontSize: '12px', color: '#4a5568', fontWeight: '500' }}>
+                {cell.day.toUpperCase()}-{cell.index}
               </div>
               {mode === 'mark' && (
                 <>
-                <button
-                  className="button button-success"
-                  style={{ 
-                    position: 'absolute', 
-                    top: '-10px', 
-                    left: '-10px',
-                    padding: '2px 6px',
-                    fontSize: '12px',
-                    zIndex: 2
-                  }}
-                  onClick={() => handleCopyCell(index)}
+                  <button
+                    className="button button-success"
+                    style={{ 
+                      position: 'absolute', 
+                      top: '-8px', 
+                      left: '-8px',
+                      padding: '4px 8px',
+                      fontSize: '12px',
+                      zIndex: 2,
+                      borderRadius: '4px',
+                      boxShadow: '0 1px 3px rgba(0,0,0,0.2)'
+                    }}
+                    onClick={() => handleCopyCell(index)}
                     title="复制格子尺寸"
                   >
                     📋
@@ -475,16 +492,19 @@ const TemplateManager = () => {
                     className="button button-danger"
                     style={{
                       position: 'absolute',
-                      top: '-10px',
-                      right: '-10px',
-                      padding: '2px 6px',
+                      top: '-8px',
+                      right: '-8px',
+                      padding: '4px 8px',
                       fontSize: '12px',
-                      zIndex: 2
+                      zIndex: 2,
+                      borderRadius: '4px',
+                      boxShadow: '0 1px 3px rgba(0,0,0,0.2)'
                     }}
                     onClick={() => handleDeleteCell(index)}
-                >
-                  ×
-                </button>
+                    title="删除格子"
+                  >
+                    ✕
+                  </button>
                 </>
               )}
             </div>
