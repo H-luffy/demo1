@@ -19,6 +19,9 @@ CREATE TABLE IF NOT EXISTS templates (
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
+-- 启用 Realtime 复制
+ALTER PUBLICATION supabase_realtime ADD TABLE templates;
+
 -- 创建索引
 CREATE INDEX IF NOT EXISTS idx_templates_user_id ON templates(user_id);
 CREATE INDEX IF NOT EXISTS idx_templates_category ON templates(category);
@@ -66,6 +69,9 @@ CREATE TABLE IF NOT EXISTS template_cells (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   UNIQUE(template_id, day, index)
 );
+
+-- 启用 Realtime 复制
+ALTER PUBLICATION supabase_realtime ADD TABLE template_cells;
 
 -- 创建索引
 CREATE INDEX IF NOT EXISTS idx_cells_template_id ON template_cells(template_id);
@@ -163,4 +169,5 @@ CREATE TRIGGER update_templates_updated_at
 -- 2. 所有策略使用 DROP POLICY IF EXISTS 确保可重复执行
 -- 3. 存储桶使用 ON CONFLICT DO NOTHING 避免重复创建
 -- 4. 如需重置，可以删除表后重新执行
+-- 5. 已启用 Realtime 复制功能，支持模板和格子的实时更新
 -- ============================================

@@ -7,7 +7,7 @@ const { createClient } = require('@supabase/supabase-js');
 
 // 从环境变量获取配置
 const supabaseUrl = process.env.SUPABASE_URL;
-const supabaseKey = process.env.SUPABASE_ANON_KEY;
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY;
 const enableSync = process.env.ENABLE_SUPABASE_SYNC === 'true';
 
 let supabase = null;

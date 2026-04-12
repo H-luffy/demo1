@@ -739,9 +739,29 @@ app.post('/api/save-template', requireAdminAuth, async (req, res) => {
   }
 });
 
-app.get('/api/templates', (req, res) => {
+app.get('/api/templates', async (req, res) => {
   try {
     console.log('获取模板列表...');
+
+    // 如果启用了 Supabase 同步，优先从 Supabase 获取数据
+    if (supabaseClient.isSyncEnabled()) {
+      console.log('从 Supabase 获取模板列表...');
+      const supabaseTemplates = await supabaseClient.getTemplatesFromSupabase();
+
+      if (supabaseTemplates.length > 0) {
+        const templates = supabaseTemplates.map(template => ({
+          templateId: template.id,
+          name: template.name,
+          image: template.image_url,
+          cellsCount: template.cells_count || 0
+        }));
+        console.log('从 Supabase 返回的模板列表:', templates);
+        return res.json(templates);
+      }
+    }
+
+    // 如果 Supabase 没有数据或未启用同步，从本地文件系统获取
+    console.log('从本地文件系统获取模板列表...');
     console.log('templatesDir:', templatesDir);
     const templates = [];
     const files = fs.readdirSync(templatesDir);
@@ -772,9 +792,23 @@ app.get('/api/templates', (req, res) => {
   }
 });
 
-app.get('/api/template/:id', (req, res) => {
+app.get('/api/template/:id', async (req, res) => {
   try {
     const templateId = req.params.id;
+
+    // 如果启用了 Supabase 同步，优先从 Supabase 获取数据
+    if (supabaseClient.isSyncEnabled()) {
+      console.log(`从 Supabase 获取模板 #${templateId}...`);
+      const templateData = await supabaseClient.getTemplateFromSupabase(templateId);
+
+      if (templateData) {
+        console.log(`从 Supabase 返回的模板 #${templateId}:`, templateData);
+        return res.json(templateData);
+      }
+    }
+
+    // 如果 Supabase 没有数据或未启用同步，从本地文件系统获取
+    console.log(`从本地文件系统获取模板 #${templateId}...`);
     const templatePath = path.join(templatesDir, `${templateId}.json`);
 
     if (!fs.existsSync(templatePath)) {
