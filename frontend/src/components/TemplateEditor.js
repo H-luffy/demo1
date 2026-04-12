@@ -18,6 +18,7 @@ const TemplateEditor = () => {
   const [fontColor, setFontColor] = useState('#2d3748'); // 字体颜色
   const [imageDisplaySize, setImageDisplaySize] = useState({ width: 0, height: 0 }); // 图片显示尺寸
   const editorRef = useRef(null);
+  const [isEditMode, setIsEditMode] = useState(true); // 是否处于编辑模式
 
   // 添加样式
   useEffect(() => {
@@ -179,7 +180,12 @@ const TemplateEditor = () => {
       console.log('图片实际尺寸:', imgWidth, 'x', imgHeight);
       console.log('图片显示尺寸:', displayWidth, 'x', displayHeight);
 
-      // 创建Canvas，使用图片的显示尺寸（因为格子坐标是相对于显示尺寸的）
+      // 计算缩放比例
+      const scaleX = displayWidth / imgWidth;
+      const scaleY = displayHeight / imgHeight;
+      console.log('缩放比例:', scaleX, 'x', scaleY);
+
+      // 创建Canvas，使用图片的显示尺寸
       const canvas = document.createElement('canvas');
       canvas.width = displayWidth;
       canvas.height = displayHeight;
@@ -223,11 +229,11 @@ const TemplateEditor = () => {
             return 0;
           };
 
-          // 直接使用原始坐标（因为坐标是相对于显示尺寸的）
-          const x = parseValue(cell.x);
-          const y = parseValue(cell.y);
-          const width = parseValue(cell.width);
-          const height = parseValue(cell.height);
+          // 应用缩放比例到坐标（与显示时的缩放保持一致）
+          const x = parseValue(cell.x) * scaleX;
+          const y = parseValue(cell.y) * scaleY;
+          const width = parseValue(cell.width) * scaleX;
+          const height = parseValue(cell.height) * scaleY;
 
           console.log(`解析后坐标: x=${x}, y=${y}, width=${width}, height=${height}`);
 
@@ -281,23 +287,70 @@ const TemplateEditor = () => {
   };
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100">
-      <div className="flex items-center justify-between w-full p-4">
-        <Link to="/" className="flex items-center space-x-2">
-          <Home className="w-6 h-6" />
-          <span>返回首页</span>
+    <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+      <div className="flex items-center justify-between w-full p-4 bg-white shadow-sm">
+        <Link to="/" className="flex items-center space-x-2 text-gray-700 hover:text-blue-600 transition-colors">
+          <Home className="w-5 h-5" />
+          <span className="font-medium">返回首页</span>
         </Link>
-        <div className="flex items-center space-x-2">
-          <Button onClick={handleExport} disabled={loading}>
-            <Download className="w-4 h-4" />
+        <div className="flex items-center space-x-3">
+          {isEditMode && (
+            <>
+              <div className="flex items-center space-x-3 px-4 py-2 bg-gray-50 rounded-lg">
+                <div className="flex items-center space-x-2">
+                  <label className="text-sm font-medium text-gray-700">字体大小:</label>
+                  <input
+                    type="range"
+                    min="10"
+                    max="30"
+                    value={fontSize}
+                    onChange={(e) => setFontSize(parseInt(e.target.value))}
+                    className="w-24 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
+                  />
+                  <span className="text-sm font-medium text-gray-700 w-6 text-center">{fontSize}</span>
+                </div>
+                <div className="w-px h-6 bg-gray-300"></div>
+                <div className="flex items-center space-x-2">
+                  <label className="text-sm font-medium text-gray-700">字体颜色:</label>
+                  <div className="relative">
+                    <input
+                      type="color"
+                      value={fontColor}
+                      onChange={(e) => setFontColor(e.target.value)}
+                      className="w-8 h-8 rounded border-2 border-gray-300 cursor-pointer"
+                    />
+                  </div>
+                </div>
+              </div>
+            </>
+          )}
+          <button
+            onClick={() => setIsEditMode(!isEditMode)}
+            className={`button ${isEditMode ? 'button-secondary' : 'button-primary'}`}
+          >
+            {isEditMode ? '预览模式' : '编辑模式'}
+          </button>
+          <button onClick={handleExport} disabled={loading} className="button button-primary">
+            <Download className="w-4 h-4" style={{marginRight: '6px'}} />
             导出图片
-          </Button>
+          </button>
         </div>
       </div>
-      <div className="relative p-4">
-        {loading && <div className="absolute inset-0 flex items-center justify-center bg-white bg-opacity-75">加载中...</div>}
-        {error && <div className="absolute inset-0 flex items-center justify-center bg-white bg-opacity-75 text-red-500">{error}</div>}
-        <div className="relative" ref={editorRef}>
+      <div className="relative p-8">
+        {loading && (
+          <div className="absolute inset-0 flex items-center justify-center bg-white bg-opacity-90 rounded-lg shadow-lg z-10">
+            <div className="flex flex-col items-center">
+              <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mb-2"></div>
+              <span className="text-gray-700">加载中...</span>
+            </div>
+          </div>
+        )}
+        {error && (
+          <div className="absolute inset-0 flex items-center justify-center bg-white bg-opacity-90 rounded-lg shadow-lg z-10">
+            <div className="text-red-500 font-medium">{error}</div>
+          </div>
+        )}
+        <div className="relative shadow-2xl rounded-lg overflow-hidden" ref={editorRef}>
           {imageBase64 && (
             <img 
               src={imageBase64} 
@@ -342,7 +395,8 @@ const TemplateEditor = () => {
             return (
               <div
                 key={cellKey}
-                className="absolute cell"
+                className="absolute cell group"
+                data-cell-key={cellKey}
                 style={{
                   top: `${y}px`,
                   left: `${x}px`,
@@ -355,8 +409,9 @@ const TemplateEditor = () => {
                   justifyContent: 'center',
                   borderRadius: '0',
                   boxSizing: 'border-box',
-                  backgroundColor: 'rgba(255, 255, 255, 0.8)',
+                  backgroundColor: isEditMode ? 'rgba(255, 255, 255, 0.85)' : 'transparent',
                   zIndex: 1,
+                  transition: 'background-color 0.2s ease',
                 }}
               >
                 <input
@@ -366,22 +421,53 @@ const TemplateEditor = () => {
                   onChange={e => handleCellChange(cellKey, e.target.value)}
                   className="w-full h-full p-1 text-center bg-transparent outline-none"
                   placeholder="输入课程"
+                  disabled={!isEditMode}
                   style={{
                     fontSize: `${fontSize}px`,
                     color: fontColor,
+                    cursor: isEditMode ? 'text' : 'default',
                   }}
                 />
-                <div className="absolute top-0 right-0 flex items-center justify-center cell-actions opacity-0">
-                  <button onClick={() => handleCopyContent(cellKey)} className="p-1">
-                    <Copy className="w-4 h-4" />
-                  </button>
-                  <button onClick={() => handlePasteContent(cellKey)} className="p-1">
-                    <Save className="w-4 h-4" />
-                  </button>
-                  <button onClick={() => handleClearContent(cellKey)} className="p-1">
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                </div>
+                {isEditMode && (
+                  <div className="absolute top-0 right-0 flex items-center justify-center cell-actions opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-white rounded-bl shadow-md">
+                    <button 
+                      onClick={() => handleCopyContent(cellKey)} 
+                      className="button button-info"
+                      style={{
+                        padding: '4px 8px',
+                        fontSize: '12px',
+                        borderRadius: '4px'
+                      }}
+                      title="复制"
+                    >
+                      <Copy className="w-3.5 h-3.5" />
+                    </button>
+                    <button 
+                      onClick={() => handlePasteContent(cellKey)} 
+                      className="button button-success"
+                      style={{
+                        padding: '4px 8px',
+                        fontSize: '12px',
+                        borderRadius: '4px'
+                      }}
+                      title="粘贴"
+                    >
+                      <Save className="w-3.5 h-3.5" />
+                    </button>
+                    <button 
+                      onClick={() => handleClearContent(cellKey)} 
+                      className="button button-danger"
+                      style={{
+                        padding: '4px 8px',
+                        fontSize: '12px',
+                        borderRadius: '4px'
+                      }}
+                      title="清除"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                )}
               </div>
             );
           })}
