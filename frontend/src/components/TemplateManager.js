@@ -643,7 +643,12 @@ const TemplateManager = ({ isAdmin = false }) => {
                   left: `${Math.min(selectionStart.x, selectionEnd.x) * scaleX}px`,
                   top: `${Math.min(selectionStart.y, selectionEnd.y) * scaleY}px`,
                   width: `${Math.abs(selectionEnd.x - selectionStart.x) * scaleX}px`,
-                  height: `${Math.abs(selectionEnd.y - selectionStart.y) * scaleY}px`
+                  height: `${Math.abs(selectionEnd.y - selectionStart.y) * scaleY}px`,
+                  border: '2px dashed #3182ce',
+                  backgroundColor: 'rgba(49, 130, 206, 0.2)',
+                  position: 'absolute',
+                  zIndex: 1000,
+                  pointerEvents: 'none'
                 }}
               />
             );
@@ -664,17 +669,23 @@ const TemplateManager = ({ isAdmin = false }) => {
                   top: `${cell.y * scaleY}px`,
                   width: `${cell.width * scaleX}px`,
                   height: `${cell.height * scaleY}px`,
-                borderColor: 'transparent',
+                borderColor: mode === 'mark' || mode === 'edit' 
+                  ? '#3182ce'  // 蓝色边框，便于识别
+                  : 'transparent',
+                borderWidth: '2px',
+                borderStyle: 'solid',
                 borderRadius: '0',
                 boxSizing: 'border-box',
                 backgroundColor: mode === 'mark' 
-                  ? 'transparent' 
+                  ? 'rgba(49, 130, 206, 0.15)'  // 半透明蓝色背景
+                  : mode === 'edit'
+                  ? 'rgba(49, 130, 206, 0.1)'   // 编辑模式稍浅一些
                   : 'transparent',
                 cursor: (mode === 'edit' || mode === 'mark') ? 'move' : 'default'
               }}
               onMouseDown={(e) => (mode === 'edit' || mode === 'mark') && handleStartEditCell(index, e)}
             >
-              <div style={{ fontSize: '12px', color: '#4a5568', fontWeight: '500', backgroundColor: 'transparent' }}>
+              <div style={{ fontSize: '12px', color: mode === 'mark' || mode === 'edit' ? '#2c5282' : '#4a5568', fontWeight: '600', backgroundColor: 'transparent' }}>
                 {cell.day ? cell.day.toUpperCase() : '?'}-{cell.index}
               </div>
               {mode === 'mark' && (

@@ -19,6 +19,8 @@ const TemplateEditor = () => {
   const [imageDisplaySize, setImageDisplaySize] = useState({ width: 0, height: 0 }); // 图片显示尺寸
   const editorRef = useRef(null);
   const [isEditMode, setIsEditMode] = useState(true); // 是否处于编辑模式
+  const [isMarkMode, setIsMarkMode] = useState(false); // 是否处于标记模式
+  const [markModeBgColor, setMarkModeBgColor] = useState('#4299e1'); // 标记模式下的背景色
 
   // 添加样式
   useEffect(() => {
@@ -330,6 +332,25 @@ const TemplateEditor = () => {
           >
             {isEditMode ? '预览模式' : '编辑模式'}
           </button>
+          <button
+            onClick={() => setIsMarkMode(!isMarkMode)}
+            className={`button ${isMarkMode ? 'button-primary' : 'button-secondary'}`}
+          >
+            {isMarkMode ? '标记模式' : '普通模式'}
+          </button>
+          {isMarkMode && (
+            <div className="flex items-center space-x-2 px-4 py-2 bg-white border border-gray-300 rounded-lg shadow-sm">
+              <label className="text-sm font-medium text-gray-700 whitespace-nowrap">标记背景色:</label>
+              <div className="relative">
+                <input
+                  type="color"
+                  value={markModeBgColor}
+                  onChange={(e) => setMarkModeBgColor(e.target.value)}
+                  className="w-10 h-10 rounded border-2 border-gray-300 cursor-pointer"
+                />
+              </div>
+            </div>
+          )}
           <button onClick={handleExport} disabled={loading} className="button button-primary">
             <Download className="w-4 h-4" style={{marginRight: '6px'}} />
             导出图片
@@ -395,7 +416,7 @@ const TemplateEditor = () => {
             return (
               <div
                 key={cellKey}
-                className="absolute cell group"
+                className={`absolute cell group ${isMarkMode ? 'mark-mode' : ''}`}
                 data-cell-key={cellKey}
                 style={{
                   top: `${y}px`,
@@ -409,7 +430,7 @@ const TemplateEditor = () => {
                   justifyContent: 'center',
                   borderRadius: '0',
                   boxSizing: 'border-box',
-                  backgroundColor: isEditMode ? 'rgba(255, 255, 255, 0.85)' : 'transparent',
+                  backgroundColor: isMarkMode ? '' : (isEditMode ? 'transparent' : 'rgba(255, 255, 255, 0.85)'),
                   zIndex: 1,
                   transition: 'background-color 0.2s ease',
                 }}

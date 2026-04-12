@@ -3,7 +3,6 @@ import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
 import TemplateList from './components/TemplateList';
 import TemplateEditor from './components/TemplateEditor';
 import TemplateManager from './components/TemplateManager';
-import StyleGenerator from './components/StyleGenerator';
 import TemplateBrowser from './components/TemplateBrowser';
 import AdminModeToggle from './components/AdminModeToggle';
 
@@ -24,9 +23,7 @@ function App() {
             <h1>课表模板编辑系统</h1>
             <nav style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
               <Link to="/">模板列表</Link>
-              <Link to="/browser">浏览器</Link>
               {isAdmin && <Link to="/manager">管理</Link>}
-              <Link to="/style-generator">风格生成</Link>
               <AdminModeToggle isAdmin={isAdmin} onAdminStateChange={handleAdminStatusChange} />
             </nav>
           </div>
@@ -37,7 +34,6 @@ function App() {
             <Route path="/browser" element={<TemplateBrowser isAdmin={isAdmin} />} />
             <Route path="/manager" element={isAdmin ? <TemplateManager isAdmin={isAdmin} /> : <AccessDenied />} />
             <Route path="/editor/:id" element={<TemplateEditor />} />
-            <Route path="/style-generator" element={<StyleGenerator />} />
           </Routes>
         </main>
       </div>
