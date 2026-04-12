@@ -226,14 +226,14 @@ body {
 
 .template-editor img {
   display: block;
-  max-width: 100%;
+  width: auto;
   height: auto;
 }
 
 .cell {
   position: absolute;
-  border: 2px solid #667eea;
-  background-color: rgba(102, 126, 234, 0.1);
+  border: none;
+  background-color: transparent;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -242,7 +242,7 @@ body {
   padding: 0;
   box-sizing: border-box;
   overflow: hidden;
-  border-radius: 4px;
+  border-radius: 0;
 }
 
 .cell input {
@@ -277,6 +277,33 @@ body {
   font-size: 14px;
   padding: 5px;
   resize: none;
+}
+
+.grid-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.grid-line {
+  position: absolute;
+  background-color: rgba(102, 126, 234, 0.2);
+}
+
+.grid-line.vertical {
+  width: 1px;
+  height: 100%;
+  top: 0;
+}
+
+.grid-line.horizontal {
+  height: 1px;
+  width: 100%;
+  left: 0;
 }
 
 .selection-box {
@@ -389,4 +416,24 @@ body {
   display: flex;
   justify-content: flex-end;
   gap: 8px;
+}
+
+/* 密码输入框自定义样式 - 使用星号掩码 */
+.password-input-with-asterisk {
+  /* 注意：-webkit-text-security 只能显示圆点/圆圈/方块，无法显示真正的星号 */
+  /* 如需显示真正的 * 号，需要使用 JavaScript 自定义实现 */
+  -webkit-text-security: disc; /* Chrome, Safari, Edge - 显示圆点 */
+}
+
+.password-input-with-asterisk::-ms-reveal {
+  display: none; /* 隐藏IE/Edge的默认显示密码按钮 */
+}
+
+/* 确保密码输入框有清晰的光标 */
+input[type="password"] {
+  caret-color: #3b82f6; /* 蓝色光标 */
+}
+
+input[type="password"]:focus {
+  caret-color: #2563eb; /* 聚焦时更深的蓝色 */
 }

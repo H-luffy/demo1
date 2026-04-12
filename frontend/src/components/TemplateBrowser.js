@@ -1,13 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import axios from 'axios';
+import api from '../axiosConfig';
 import html2canvas from 'html2canvas';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
-import { Home, Search, BookOpen, Download, Calendar, User, Settings, ChevronRight } from 'lucide-react';
+import { Home, Search, BookOpen, Download, Calendar, User, Settings, ChevronRight, Copy, Clipboard, Trash2 } from 'lucide-react';
 
-const TemplateBrowser = () => {
+const TemplateBrowser = ({ isAdmin = false }) => {
   const [templates, setTemplates] = useState([]);
   const [selectedTemplate, setSelectedTemplate] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -22,7 +22,7 @@ const TemplateBrowser = () => {
   useEffect(() => {
     const fetchTemplates = async () => {
       try {
-        const response = await axios.get('/api/templates');
+        const response = await api.get('/api/templates');
         const templatesData = response.data;
 
         // 加载所有模板图片并转换为Base64
@@ -80,7 +80,7 @@ const TemplateBrowser = () => {
   // 处理模板选择
   const handleSelectTemplate = async (template) => {
     try {
-      const response = await axios.get(`/api/template/${template.templateId}`);
+      const response = await api.get(`/api/template/${template.templateId}`);
       const templateData = response.data;
       
       setSelectedTemplate(templateData);
@@ -161,15 +161,12 @@ const TemplateBrowser = () => {
       const displayWidth = img?.width || imgWidth;
       const displayHeight = img?.height || imgHeight;
 
-      const scaleX = imgWidth / displayWidth;
-      const scaleY = imgHeight / displayHeight;
-
       const canvas = document.createElement('canvas');
-      canvas.width = imgWidth;
-      canvas.height = imgHeight;
+      canvas.width = displayWidth;
+      canvas.height = displayHeight;
       const ctx = canvas.getContext('2d');
 
-      ctx.drawImage(img, 0, 0, imgWidth, imgHeight);
+      ctx.drawImage(img, 0, 0, displayWidth, displayHeight);
 
       selectedTemplate.cells?.forEach((cell) => {
         const cellKey = `${cell.day}-${cell.index}`;
@@ -182,10 +179,11 @@ const TemplateBrowser = () => {
             return 0;
           };
 
-          const x = parseValue(cell.x) * scaleX;
-          const y = parseValue(cell.y) * scaleY;
-          const width = parseValue(cell.width) * scaleX;
-          const height = parseValue(cell.height) * scaleY;
+          // 直接使用原始坐标（不应用缩放比例）
+          const x = parseValue(cell.x);
+          const y = parseValue(cell.y);
+          const width = parseValue(cell.width);
+          const height = parseValue(cell.height);
 
           const cellElement = editorRef.current.querySelector(`[data-cell-key="${cellKey}"]`);
           const input = cellElement?.querySelector('input');
@@ -201,9 +199,7 @@ const TemplateBrowser = () => {
             color = computedStyle.color;
           }
 
-          const scaledFontSize = fontSize * Math.min(scaleX, scaleY);
-
-          ctx.font = `${scaledFontSize}px ${fontFamily}`;
+          ctx.font = `${fontSize}px ${fontFamily}`;
           ctx.fillStyle = color;
           ctx.textAlign = 'center';
           ctx.textBaseline = 'middle';
@@ -225,104 +221,46 @@ const TemplateBrowser = () => {
   };
 
   const renderEditor = () => {
-    if (!selectedTemplate.cells || selectedTemplate.cells.length === 0) {
-      return (
-        <div className="text-center py-12">
-          <BookOpen className="h-16 w-16 mx-auto text-gray-300 mb-4" />
-          <p className="text-gray-500 text-lg font-medium mb-2">该模板还没有定义格子</p>
-          <p className="text-gray-400 text-sm">请先在模板管理页面标记格子位置</p>
-        </div>
-      );
-    }
+    if (!selectedTemplate) return null;
 
     return (
-      <div ref={editorRef} className="template-editor" style={{ position: 'relative', display: 'inline-block' }}>
+      <div className="relative" ref={editorRef} style={{ display: 'inline-block' }}>
         <img 
-          src={images[selectedTemplate.templateId] || `http://localhost:3001${selectedTemplate.image}`} 
-          alt={`模板 ${selectedTemplate.templateId}`} 
-          className="max-w-full h-auto rounded-lg"
+          src={images[selectedTemplate.templateId]} 
+          alt="Template" 
+          style={{ display: 'block', maxWidth: '100%', height: 'auto' }} 
         />
-        {selectedTemplate.cells.map(cell => {
+        {selectedTemplate.cells?.map((cell) => {
           const cellKey = `${cell.day}-${cell.index}`;
           return (
             <div
               key={cellKey}
-              data-cell-key={cellKey}
-              className="cell group"
+              className="absolute"
               style={{
-                position: 'absolute',
-                left: cell.x,
                 top: cell.y,
+                left: cell.x,
                 width: cell.width,
                 height: cell.height,
-                border: 'none',
-                background: 'transparent',
-                margin: 0,
-                padding: 0,
-                boxSizing: 'border-box',
-                overflow: 'hidden'
               }}
+              data-cell-key={cellKey}
             >
-              <input
-                type="text"
+              <Input
                 id={`cell-${cellKey}`}
-                value={cellContents[cellKey] || ''}
+                value={cellContents[cellKey]}
                 onChange={(e) => handleCellChange(cellKey, e.target.value)}
                 placeholder="输入课程"
-                style={{
-                  position: 'absolute',
-                  top: 0,
-                  left: 0,
-                  right: 0,
-                  bottom: 0,
-                  width: '100%',
-                  height: '100%',
-                  border: 'none',
-                  background: 'transparent',
-                  textAlign: 'center',
-                  fontSize: '14px',
-                  color: '#2d3748',
-                  fontFamily: 'Arial, sans-serif',
-                  padding: '5px',
-                  margin: 0,
-                  boxSizing: 'border-box',
-                  outline: 'none',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontWeight: '500'
-                }}
+                className="w-full h-full"
               />
-              <div
-                style={{
-                  position: 'absolute',
-                  top: '-24px',
-                  right: '0',
-                  display: 'flex',
-                  gap: '4px',
-                  opacity: 0,
-                  transition: 'opacity 0.2s'
-                }}
-                className="cell-actions"
-              >
-                <button onClick={() => handleCopyContent(cellKey)} style={{
-                  padding: '4px 8px', fontSize: '12px', cursor: 'pointer',
-                  background: 'linear-gradient(135deg, #48bb78, #38a169)',
-                  color: 'white', border: 'none', borderRadius: '4px',
-                  boxShadow: '0 1px 3px rgba(0,0,0,0.2)'
-                }} title="复制内容">📋</button>
-                <button onClick={() => handlePasteContent(cellKey)} style={{
-                  padding: '4px 8px', fontSize: '12px', cursor: 'pointer',
-                  background: 'linear-gradient(135deg, #63b3ed, #4299e1)',
-                  color: 'white', border: 'none', borderRadius: '4px',
-                  boxShadow: '0 1px 3px rgba(0,0,0,0.2)'
-                }} title="粘贴内容">📝</button>
-                <button onClick={() => handleClearContent(cellKey)} style={{
-                  padding: '4px 8px', fontSize: '12px', cursor: 'pointer',
-                  background: 'linear-gradient(135deg, #fc8181, #f56565)',
-                  color: 'white', border: 'none', borderRadius: '4px',
-                  boxShadow: '0 1px 3px rgba(0,0,0,0.2)'
-                }} title="清除内容">✕</button>
+              <div className="absolute top-0 right-0 flex space-x-1">
+                <Button variant="ghost" onClick={() => handleCopyContent(cellKey)}>
+                  <Copy className="h-4 w-4" />
+                </Button>
+                <Button variant="ghost" onClick={() => handlePasteContent(cellKey)}>
+                  <Clipboard className="h-4 w-4" />
+                </Button>
+                <Button variant="ghost" onClick={() => handleClearContent(cellKey)}>
+                  <Trash2 className="h-4 w-4" />
+                </Button>
               </div>
             </div>
           );
@@ -332,185 +270,45 @@ const TemplateBrowser = () => {
   };
 
   return (
-    <div className="flex h-screen bg-gray-50">
-      {/* 左侧边栏 */}
-      <aside className="w-72 bg-white border-r border-gray-200 flex flex-col">
-        {/* 侧边栏头部 */}
-        <div className="p-5 border-b border-gray-200">
-          <div className="flex items-center gap-2 mb-4">
-            <BookOpen className="h-5 w-5 text-purple-600" />
-            <h1 className="text-lg font-bold text-gray-900">课程模板</h1>
-          </div>
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-            <Input
-              type="text"
-              placeholder="搜索模板..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10"
-            />
-          </div>
-        </div>
-
-        {/* 分类标签 */}
-        <div className="px-5 py-3 border-b border-gray-200">
-          <div className="flex gap-2 flex-wrap">
-            {categories.map(category => (
-              <Button
-                key={category}
-                variant={selectedCategory === category ? "primary" : "secondary"}
-                size="sm"
-                onClick={() => setSelectedCategory(category)}
-                className="text-xs"
-              >
-                {category}
-              </Button>
-            ))}
-          </div>
-        </div>
-
-        {/* 模板列表 */}
-        <div className="flex-1 overflow-y-auto p-3">
-          <div className="space-y-2">
-            {categoryFilteredTemplates.map(template => (
-              <Card
-                key={template.templateId}
-                className={`cursor-pointer transition-all hover:shadow-md border-0 shadow-sm ${
-                  selectedTemplate?.templateId === template.templateId ? 'ring-2 ring-purple-500' : ''
-                }`}
-                onClick={() => handleSelectTemplate(template)}
-              >
-                <CardContent className="p-3">
-                  <div className="flex gap-3">
-                    <img
-                      src={images[template.templateId] || `http://localhost:3001${template.image}`}
-                      alt={`模板 ${template.templateId}`}
-                      className="w-14 h-14 object-cover rounded-md"
-                    />
-                    <div className="flex-1 min-w-0">
-                      <h3 className="font-semibold text-sm mb-1 truncate text-gray-900">
-                        {template.name || `模板 #${template.templateId}`}
-                      </h3>
-                      <p className="text-xs text-gray-500 line-clamp-2">
-                        {template.category || '默认分类'} • {template.cellsCount}个格子
-                      </p>
-                      <div className="mt-1.5 flex items-center gap-1 text-xs text-purple-600">
-                        <span>点击查看详情</span>
-                        <ChevronRight className="h-3 w-3" />
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </div>
-
-        {/* 侧边栏底部 */}
-        <div className="p-4 border-t border-gray-200">
-          <Link to="/">
-            <Button variant="secondary" className="w-full gap-2">
-              <Home className="h-4 w-4" />
-              返回首页
-            </Button>
-          </Link>
-        </div>
-      </aside>
-
-      {/* 主内容区 */}
-      <main className="flex-1 overflow-y-auto bg-gray-50 p-6">
-        {loading ? (
-          <div className="h-full flex items-center justify-center">
-            <div className="text-gray-500">加载中...</div>
-          </div>
-        ) : error ? (
-          <div className="h-full flex items-center justify-center">
-            <div className="text-red-600">{error}</div>
-          </div>
-        ) : !selectedTemplate ? (
-          <div className="h-full flex items-center justify-center">
-            <Card className="max-w-md border-0 shadow-md">
-              <CardHeader className="pb-4">
-                <CardTitle className="text-center text-xl">欢迎使用课程模板系统</CardTitle>
-              </CardHeader>
-              <CardContent className="text-center text-gray-600">
-                <div className="mb-6">
-                  <BookOpen className="h-16 w-16 mx-auto text-purple-600 mb-4" />
-                  <p className="text-gray-600">请从左侧选择一个模板开始编辑课程信息</p>
-                </div>
-                <div className="grid grid-cols-3 gap-4 text-sm">
-                  <div className="flex flex-col items-center gap-2">
-                    <div className="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center">
-                      <BookOpen className="h-5 w-5 text-purple-600" />
-                    </div>
-                    <span className="text-gray-700">浏览模板</span>
-                  </div>
-                  <div className="flex flex-col items-center gap-2">
-                    <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
-                      <Calendar className="h-5 w-5 text-blue-600" />
-                    </div>
-                    <span className="text-gray-700">编辑课程</span>
-                  </div>
-                  <div className="flex flex-col items-center gap-2">
-                    <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center">
-                      <User className="h-5 w-5 text-green-600" />
-                    </div>
-                    <span className="text-gray-700">管理信息</span>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        ) : (
-          <div className="max-w-6xl mx-auto">
-            {/* 模板信息卡片 */}
-            <Card className="mb-6 border-0 shadow-md">
-              <CardHeader className="pb-4">
-                <CardTitle className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <BookOpen className="h-5 w-5 text-purple-600" />
-                    <span className="text-xl">{selectedTemplate.name || `模板 #${selectedTemplate.templateId}`}</span>
-                  </div>
-                  <Button onClick={handleExport} variant="success" size="sm" className="gap-2">
-                    <Download className="h-4 w-4" />
-                    导出图片
-                  </Button>
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="flex items-center gap-4 text-sm text-gray-600">
-                  <span className="flex items-center gap-1">
-                    <Calendar className="h-4 w-4" />
-                    {selectedTemplate.category || '默认分类'}
-                  </span>
-                  <span className="flex items-center gap-1">
-                    <Settings className="h-4 w-4" />
-                    {selectedTemplate.cellsCount}个格子
-                  </span>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* 在线编辑器 */}
-            <Card className="border-0 shadow-lg overflow-hidden">
-              <div className="bg-gradient-to-r from-purple-50 to-pink-50 px-6 py-4 border-b border-purple-100">
-                <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-                  <BookOpen className="h-5 w-5 text-purple-600" />
-                  点击格子输入课程内容
-                </h3>
-                <p className="text-sm text-gray-600 mt-1">
-                  💡 提示：直接在格子中输入文字，支持复制粘贴操作
-                </p>
-              </div>
-              
-              <CardContent className="p-6 bg-white">
-                {renderEditor()}
-              </CardContent>
-            </Card>
-          </div>
-        )}
-      </main>
+    <div className="flex flex-col space-y-4">
+      <div className="flex items-center space-x-4">
+        <Input
+          placeholder="搜索模板"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="w-full"
+        />
+        <Button variant="outline" onClick={handleExport}>
+          <Download className="mr-2 h-4 w-4" />
+          导出
+        </Button>
+      </div>
+      <div className="flex space-x-4">
+        {categories.map((category) => (
+          <Button
+            key={category}
+            variant={selectedCategory === category ? 'default' : 'outline'}
+            onClick={() => setSelectedCategory(category)}
+          >
+            {category}
+          </Button>
+        ))}
+      </div>
+      <div className="grid grid-cols-3 gap-4">
+        {categoryFilteredTemplates.map((template) => (
+          <Card key={template.templateId} onClick={() => handleSelectTemplate(template)}>
+            <CardHeader>
+              <CardTitle>{template.name}</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <img src={images[template.templateId]} alt={template.name} className="w-full h-full" />
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+      <div className="mt-4">
+        {renderEditor()}
+      </div>
     </div>
   );
 };

@@ -1,0 +1,23 @@
+{
+  "templateId": 4,
+  "name": "测试2",
+  "image": "/uploads/template-1775913852928-628178960.png",
+  "cells": [
+    {
+      "day": "mon",
+      "index": 0,
+      "x": 600,
+      "y": 690,
+      "width": 210,
+      "height": 110
+    },
+    {
+      "day": "mon",
+      "index": 1,
+      "x": 600,
+      "y": 810,
+      "width": 210,
+      "height": 110
+    }
+  ]
+}

@@ -14,6 +14,9 @@ const TemplateEditor = () => {
   const [cellContents, setCellContents] = useState({});
   const [imageBase64, setImageBase64] = useState(null);
   const [copiedContent, setCopiedContent] = useState(null); // 存储复制的内容
+  const [fontSize, setFontSize] = useState(14); // 字体大小
+  const [fontColor, setFontColor] = useState('#2d3748'); // 字体颜色
+  const [imageDisplaySize, setImageDisplaySize] = useState({ width: 0, height: 0 }); // 图片显示尺寸
   const editorRef = useRef(null);
 
   // 添加样式
@@ -35,20 +38,31 @@ const TemplateEditor = () => {
     const fetchTemplate = async () => {
       try {
         const response = await axios.get(`/api/template/${id}`);
-        setTemplate(response.data);
-
+        const templateData = response.data;
+        
         // 加载图片并转换为Base64
-        const imgResponse = await fetch(`http://localhost:3001${response.data.image}`);
+        const imgResponse = await fetch(`http://localhost:3001${templateData.image}`);
         const blob = await imgResponse.blob();
-        const reader = new FileReader();
-        reader.onloadend = () => {
-          setImageBase64(reader.result);
+        
+        // 创建Image对象获取原始尺寸
+        const img = new Image();
+        img.onload = () => {
+          // 保存图片原始尺寸到模板数据
+          templateData.originalWidth = img.naturalWidth;
+          templateData.originalHeight = img.naturalHeight;
+          setTemplate(templateData);
+          
+          const reader = new FileReader();
+          reader.onloadend = () => {
+            setImageBase64(reader.result);
+          };
+          reader.readAsDataURL(blob);
         };
-        reader.readAsDataURL(blob);
+        img.src = URL.createObjectURL(blob);
 
         // 初始化格子内容
         const initialContents = {};
-        response.data.cells.forEach(cell => {
+        templateData.cells.forEach(cell => {
           const cellKey = `${cell.day}-${cell.index}`;
           initialContents[cellKey] = '';
         });
@@ -116,12 +130,18 @@ const TemplateEditor = () => {
       return;
     }
 
+    if (!template) {
+      console.error('模板数据未加载');
+      setError('模板数据未加载');
+      return;
+    }
+
     try {
       // 显示加载提示
       setError('正在生成图片，请稍候...');
 
       // 等待图片加载完成
-      const img = editorRef.current.querySelector('img');
+      const img = editorRef.current?.querySelector('img');
       console.log('找到图片元素:', img);
 
       if (img) {
@@ -159,26 +179,32 @@ const TemplateEditor = () => {
       console.log('图片实际尺寸:', imgWidth, 'x', imgHeight);
       console.log('图片显示尺寸:', displayWidth, 'x', displayHeight);
 
-      // 计算缩放比例
-      const scaleX = imgWidth / displayWidth;
-      const scaleY = imgHeight / displayHeight;
-      console.log('缩放比例: scaleX=', scaleX, 'scaleY=', scaleY);
-
-      // 创建Canvas
+      // 创建Canvas，使用图片的显示尺寸（因为格子坐标是相对于显示尺寸的）
       const canvas = document.createElement('canvas');
-      canvas.width = imgWidth;
-      canvas.height = imgHeight;
+      canvas.width = displayWidth;
+      canvas.height = displayHeight;
       const ctx = canvas.getContext('2d');
 
-      // 绘制背景图片
+      // 绘制背景图片，缩放到显示尺寸
       console.log('绘制背景图片...');
-      ctx.drawImage(img, 0, 0, imgWidth, imgHeight);
+      if (img) {
+        ctx.drawImage(img, 0, 0, displayWidth, displayHeight);
+      } else {
+        console.error('图片元素未找到');
+        setError('图片元素未找到');
+        return;
+      }
 
       // 获取所有格子
-      const cells = editorRef.current.querySelectorAll('.cell');
+      const cells = editorRef.current?.querySelectorAll('.cell') || [];
       console.log('找到格子数量:', cells.length);
 
       // 绘制文字
+      if (!template || !template.cells || template.cells.length === 0) {
+        console.error('模板数据无效');
+        setError('模板数据无效');
+        return;
+      }
       template.cells.forEach((cell, index) => {
         const cellKey = `${cell.day}-${cell.index}`;
         const value = cellContents[cellKey];
@@ -197,16 +223,16 @@ const TemplateEditor = () => {
             return 0;
           };
 
-          // 使用模板数据中的原始坐标，并应用缩放比例
-          const x = parseValue(cell.x) * scaleX;
-          const y = parseValue(cell.y) * scaleY;
-          const width = parseValue(cell.width) * scaleX;
-          const height = parseValue(cell.height) * scaleY;
+          // 直接使用原始坐标（因为坐标是相对于显示尺寸的）
+          const x = parseValue(cell.x);
+          const y = parseValue(cell.y);
+          const width = parseValue(cell.width);
+          const height = parseValue(cell.height);
 
           console.log(`解析后坐标: x=${x}, y=${y}, width=${width}, height=${height}`);
 
           // 找到对应的输入框获取样式
-          const cellElement = editorRef.current.querySelector(`[data-cell-key="${cellKey}"]`);
+          const cellElement = editorRef.current?.querySelector(`[data-cell-key="${cellKey}"]`);
           const input = cellElement ? cellElement.querySelector('input') : null;
 
           // 获取输入框的计算样式
@@ -221,210 +247,145 @@ const TemplateEditor = () => {
             color = computedStyle.color;
           }
 
-          // 应用缩放比例到字体大小
-          const scaledFontSize = fontSize * Math.min(scaleX, scaleY);
-
           // 设置文字样式
-          ctx.font = `${scaledFontSize}px ${fontFamily}`;
+          ctx.font = `${fontSize}px ${fontFamily}`;
           ctx.fillStyle = color;
           ctx.textAlign = 'center';
           ctx.textBaseline = 'middle';
 
-          // 计算文字位置（居中）
+          // 计算文字位置（格子中心）
           const centerX = x + width / 2;
           const centerY = y + height / 2;
 
-          console.log(`绘制位置: x=${centerX}, y=${centerY}`);
+          console.log(`绘制位置: x=${centerX}, y=${centerY}, fontSize=${fontSize}`);
 
           // 绘制文字
           ctx.fillText(value, centerX, centerY);
         }
       });
 
-      console.log('Canvas生成完成，尺寸:', canvas.width, 'x', canvas.height);
-
-      // 清除加载提示
+      console.log('导出成功！');
       setError(null);
 
-      // 创建下载链接
-      console.log('准备下载图片...');
+      // 下载图片
       const link = document.createElement('a');
-      link.download = `schedule-${Date.now()}.png`;
-      link.href = canvas.toDataURL('image/png', 1.0);
+      link.download = `schedule-${template.templateId}-${Date.now()}.png`;
+      link.href = canvas.toDataURL('image/png');
       link.click();
-      console.log('图片下载完成');
+      console.log('图片已下载');
     } catch (err) {
-      console.error('导出错误:', err);
-      console.error('错误堆栈:', err.stack);
-      setError('导出失败: ' + err.message);
+      console.error('导出失败:', err);
+      setError('导出失败，请重试');
+      setTimeout(() => setError(null), 3000);
     }
   };
 
-  if (loading) {
-    return (
-      <div className="card">
-        <div className="loading">加载中...</div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="card">
-        <div className="error">{error}</div>
-      </div>
-    );
-  }
-
   return (
-    <div className="card">
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-        <h2 style={{ fontSize: '18px', fontWeight: '600', color: '#2d3748' }}>
-          编辑课表 - 模板 #{id}
-        </h2>
-        <div style={{ display: 'flex', gap: '8px' }}>
-          <Link to="/">
-            <Button variant="secondary" size="sm">
-              <Home className="h-4 w-4 mr-1" />
-              返回首页
-            </Button>
-          </Link>
-          <Button 
-            variant="success" 
-            size="sm"
-            onClick={handleExport}
-          >
-            <Download className="h-4 w-4 mr-1" />
+    <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100">
+      <div className="flex items-center justify-between w-full p-4">
+        <Link to="/" className="flex items-center space-x-2">
+          <Home className="w-6 h-6" />
+          <span>返回首页</span>
+        </Link>
+        <div className="flex items-center space-x-2">
+          <Button onClick={handleExport} disabled={loading}>
+            <Download className="w-4 h-4" />
             导出图片
           </Button>
         </div>
       </div>
-
-      <div 
-        ref={editorRef}
-        className="template-editor"
-        style={{ position: 'relative', display: 'inline-block' }}
-      >
-        <img 
-          src={imageBase64 || `http://localhost:3001${template.image}`} 
-          alt="模板"
-          style={{ display: 'block' }}
-        />
-        {template.cells.map(cell => {
-          const cellKey = `${cell.day}-${cell.index}`;
-          return (
-            <div
-              key={cellKey}
-              data-cell-key={cellKey}
-              className="cell"
-              style={{
-                position: 'absolute',
-                left: cell.x,
-                top: cell.y,
-                width: cell.width,
-                height: cell.height,
-                border: 'none',
-                background: 'transparent',
-                margin: 0,
-                padding: 0,
-                boxSizing: 'border-box',
-                overflow: 'hidden'
+      <div className="relative p-4">
+        {loading && <div className="absolute inset-0 flex items-center justify-center bg-white bg-opacity-75">加载中...</div>}
+        {error && <div className="absolute inset-0 flex items-center justify-center bg-white bg-opacity-75 text-red-500">{error}</div>}
+        <div className="relative" ref={editorRef}>
+          {imageBase64 && (
+            <img 
+              src={imageBase64} 
+              alt="Template" 
+              style={{ display: 'block', width: 'auto', height: 'auto' }}
+              onLoad={(e) => {
+                console.log('图片加载完成');
+                console.log('图片自然尺寸 (naturalWidth/Height):', e.target.naturalWidth, 'x', e.target.naturalHeight);
+                // 保存图片的原始尺寸
+                setImageDisplaySize({
+                  width: e.target.naturalWidth,
+                  height: e.target.naturalHeight
+                });
               }}
-            >
-              <input
-                type="text"
-                id={`cell-${cellKey}`}
-                value={cellContents[cellKey] || ''}
-                onChange={(e) => handleCellChange(cellKey, e.target.value)}
-                placeholder="输入课程"
+            />
+          )}
+          {template?.cells.map((cell, index) => {
+            const cellKey = `${cell.day}-${cell.index}`;
+            console.log(`格子 ${index} 坐标:`, cell);
+            
+            // 解析原始坐标值
+            const parseValue = (val) => {
+              if (typeof val === 'number') return val;
+              if (typeof val === 'string') {
+                return parseFloat(val.replace('px', ''));
+              }
+              return 0;
+            };
+            
+            // 计算缩放比例
+            const editorRect = editorRef.current?.getBoundingClientRect();
+            const img = editorRef.current?.querySelector('img');
+            const scaleX = editorRect && img ? editorRect.width / img.naturalWidth : 1;
+            const scaleY = editorRect && img ? editorRect.height / img.naturalHeight : 1;
+            
+            // 使用缩放后的坐标
+            const x = parseValue(cell.x) * scaleX;
+            const y = parseValue(cell.y) * scaleY;
+            const width = parseValue(cell.width) * scaleX;
+            const height = parseValue(cell.height) * scaleY;
+            
+            return (
+              <div
+                key={cellKey}
+                className="absolute cell"
                 style={{
-                  position: 'absolute',
-                  top: 0,
-                  left: 0,
-                  right: 0,
-                  bottom: 0,
-                  width: '100%',
-                  height: '100%',
+                  top: `${y}px`,
+                  left: `${x}px`,
+                  width: `${width}px`,
+                  height: `${height}px`,
                   border: 'none',
-                  background: 'transparent',
-                  textAlign: 'center',
-                  fontSize: '14px',
-                  color: '#2d3748',
-                  fontFamily: 'Arial, sans-serif',
-                  padding: '5px',
-                  margin: 0,
-                  boxSizing: 'border-box',
-                  outline: 'none',
+                  position: 'absolute',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  fontWeight: '500'
+                  borderRadius: '0',
+                  boxSizing: 'border-box',
+                  backgroundColor: 'rgba(255, 255, 255, 0.8)',
+                  zIndex: 1,
                 }}
-              />
-              <div
-                style={{
-                  position: 'absolute',
-                  top: '-24px',
-                  right: '0',
-                  display: 'flex',
-                  gap: '4px',
-                  opacity: 0,
-                  transition: 'opacity 0.2s'
-                }}
-                className="cell-actions"
               >
-                <button
-                  onClick={() => handleCopyContent(cellKey)}
+                <input
+                  id={`cell-${cellKey}`}
+                  type="text"
+                  value={cellContents[cellKey] || ''}
+                  onChange={e => handleCellChange(cellKey, e.target.value)}
+                  className="w-full h-full p-1 text-center bg-transparent outline-none"
+                  placeholder="输入课程"
                   style={{
-                    padding: '4px 8px',
-                    fontSize: '12px',
-                    cursor: 'pointer',
-                    background: 'linear-gradient(135deg, #48bb78, #38a169)',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '4px',
-                    boxShadow: '0 1px 3px rgba(0,0,0,0.2)'
+                    fontSize: `${fontSize}px`,
+                    color: fontColor,
                   }}
-                  title="复制内容"
-                >
-                  📋
-                </button>
-                <button
-                  onClick={() => handlePasteContent(cellKey)}
-                  style={{
-                    padding: '4px 8px',
-                    fontSize: '12px',
-                    cursor: 'pointer',
-                    background: 'linear-gradient(135deg, #63b3ed, #4299e1)',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '4px',
-                    boxShadow: '0 1px 3px rgba(0,0,0,0.2)'
-                  }}
-                  title="粘贴内容"
-                >
-                  📝
-                </button>
-                <button
-                  onClick={() => handleClearContent(cellKey)}
-                  style={{
-                    padding: '4px 8px',
-                    fontSize: '12px',
-                    cursor: 'pointer',
-                    background: 'linear-gradient(135deg, #fc8181, #f56565)',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '4px',
-                    boxShadow: '0 1px 3px rgba(0,0,0,0.2)'
-                  }}
-                  title="清除内容"
-                >
-                  ✕
-                </button>
+                />
+                <div className="absolute top-0 right-0 flex items-center justify-center cell-actions opacity-0">
+                  <button onClick={() => handleCopyContent(cellKey)} className="p-1">
+                    <Copy className="w-4 h-4" />
+                  </button>
+                  <button onClick={() => handlePasteContent(cellKey)} className="p-1">
+                    <Save className="w-4 h-4" />
+                  </button>
+                  <button onClick={() => handleClearContent(cellKey)} className="p-1">
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
               </div>
-            </div>
-          );
-        })}
+            );
+          })}
+        </div>
       </div>
     </div>
   );

@@ -6,6 +6,7 @@ const bodyParser = require('body-parser');
 const fs = require('fs');
 const path = require('path');
 const axios = require('axios');
+const supabaseClient = require('./supabaseClient');
 
 const app = express();
 const PORT = 3001;
@@ -18,16 +19,51 @@ const QWEN_CHAT_API_URL = 'https://dashscope.aliyuncs.com/compatible-mode/v1/cha
 const QWEN_TASK_POLL_INTERVAL_MS = 3000;
 const QWEN_TASK_TIMEOUT_MS = 60000;
 
+// 管理员密码（从环境变量读取）
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || '';
+
+// 管理员权限验证中间件
+function requireAdminAuth(req, res, next) {
+  console.log('requireAdminAuth - req.body:', req.body);
+  console.log('requireAdminAuth - req.headers:', req.headers);
+
+  // 从多个可能的来源获取管理员密码
+  const adminPassword = req.body?.adminPassword || 
+                       req.body?.adminPassword?.toString() ||
+                       req.headers['x-admin-password'] ||
+                       req.query?.adminPassword;
+
+  console.log('requireAdminAuth - adminPassword:', adminPassword ? '***' : 'undefined');
+  console.log('requireAdminAuth - ADMIN_PASSWORD:', ADMIN_PASSWORD ? '***' : 'undefined');
+  
+  if (!ADMIN_PASSWORD) {
+    console.error('管理员密码未配置');
+    return res.status(500).json({ error: '管理员密码未配置' });
+  }
+  
+  if (!adminPassword || adminPassword !== ADMIN_PASSWORD) {
+    console.error('管理员权限验证失败');
+    return res.status(403).json({ error: '需要管理员权限' });
+  }
+  
+  console.log('管理员权限验证成功');
+  next();
+}
+
 app.use(cors({
   origin: ['http://localhost:3000', 'http://127.0.0.1:3000'],
   credentials: true
 }));
 app.use(bodyParser.json({ limit: '50mb' }));
+app.use(bodyParser.urlencoded({ limit: '50mb', extended: true }));
 
 const uploadsDir = path.join(__dirname, 'uploads');
 const templatesDir = path.join(__dirname, 'templates-data');
 
-app.use('/uploads', express.static(uploadsDir, {
+app.use('/uploads', (req, res, next) => {
+  console.log('访问上传文件:', req.url);
+  next();
+}, express.static(uploadsDir, {
   setHeaders: (res) => {
     res.set('Access-Control-Allow-Origin', '*');
     res.set('Cross-Origin-Resource-Policy', 'cross-origin');
@@ -44,17 +80,55 @@ if (!fs.existsSync(templatesDir)) {
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
+    console.log('multer destination:', uploadsDir);
     cb(null, uploadsDir);
   },
   filename: (req, file, cb) => {
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
-    cb(null, 'template-' + uniqueSuffix + path.extname(file.originalname));
+    const filename = 'template-' + uniqueSuffix + path.extname(file.originalname);
+    console.log('multer filename:', filename);
+    cb(null, filename);
   }
 });
 
-const upload = multer({ storage });
+const upload = multer({ 
+  storage,
+  limits: {
+    fileSize: 50 * 1024 * 1024 // 50MB
+  }
+});
 
+// 错误处理中间件
+app.use((err, req, res, next) => {
+  console.error('错误处理中间件:', err);
+  if (err instanceof multer.MulterError) {
+    if (err.code === 'LIMIT_FILE_SIZE') {
+      return res.status(400).json({ error: '文件大小超过限制' });
+    }
+    return res.status(400).json({ error: '文件上传错误: ' + err.message });
+  }
+  if (err.code === 'LIMIT_UNEXPECTED_FILE') {
+    return res.status(400).json({ error: '意外的文件字段' });
+  }
+  res.status(500).json({ error: '服务器错误: ' + err.message });
+});
+
+// 初始化模板ID计数器，从现有模板文件中读取最大的templateId
 let templateIdCounter = 1;
+try {
+  const files = fs.readdirSync(templatesDir);
+  files.forEach((file) => {
+    if (file.endsWith('.json')) {
+      const templateId = parseInt(file.replace('.json', ''), 10);
+      if (!isNaN(templateId) && templateId >= templateIdCounter) {
+        templateIdCounter = templateId + 1;
+      }
+    }
+  });
+  console.log('初始化模板ID计数器:', templateIdCounter);
+} catch (error) {
+  console.error('初始化模板ID计数器失败:', error);
+}
 
 function buildDataUrl(file, imageBase64) {
   const mimeType = file.mimetype && file.mimetype.startsWith('image/')
@@ -573,9 +647,28 @@ async function pollDashScopeTask(taskId) {
   throw new Error('Image edit task timed out, please try again later');
 }
 
-app.post('/api/upload-template', upload.single('image'), (req, res) => {
+app.post('/api/upload-template', upload.single('image'), async (req, res) => {
+  console.log('开始上传模板...');
   try {
+    // 在 multer 解析之后验证管理员权限
+    const adminPassword = req.body?.adminPassword;
+    console.log('上传模板 - adminPassword:', adminPassword ? '***' : 'undefined');
+
+    if (!ADMIN_PASSWORD) {
+      console.error('管理员密码未配置');
+      return res.status(500).json({ error: '管理员密码未配置' });
+    }
+
+    if (!adminPassword || adminPassword !== ADMIN_PASSWORD) {
+      console.error('管理员权限验证失败');
+      return res.status(403).json({ error: '需要管理员权限' });
+    }
+
+    console.log('管理员权限验证成功');
+    console.log('接收到的文件:', req.file);
+
     if (!req.file) {
+      console.error('没有接收到文件');
       return res.status(400).json({ error: 'No file uploaded' });
     }
 
@@ -589,11 +682,20 @@ app.post('/api/upload-template', upload.single('image'), (req, res) => {
       cells: []
     };
 
+    console.log('保存模板数据:', templateData);
     fs.writeFileSync(
       path.join(templatesDir, `${templateId}.json`),
       JSON.stringify(templateData, null, 2)
     );
 
+    // 如果启用了 Supabase 自动同步，则同步到云端
+    if (supabaseClient.isSyncEnabled()) {
+      supabaseClient.syncTemplateToSupabase(templateData).catch(err => {
+        console.error('后台同步到 Supabase 失败:', err);
+      });
+    }
+
+    console.log('模板上传成功:', templateId);
     return res.json({
       success: true,
       templateId,
@@ -606,7 +708,7 @@ app.post('/api/upload-template', upload.single('image'), (req, res) => {
   }
 });
 
-app.post('/api/save-template', (req, res) => {
+app.post('/api/save-template', requireAdminAuth, async (req, res) => {
   try {
     const { templateId, cells } = req.body;
 
@@ -623,6 +725,13 @@ app.post('/api/save-template', (req, res) => {
     templateData.cells = cells;
     fs.writeFileSync(templatePath, JSON.stringify(templateData, null, 2));
 
+    // 如果启用了 Supabase 自动同步，则同步到云端
+    if (supabaseClient.isSyncEnabled()) {
+      supabaseClient.syncTemplateToSupabase(templateData).catch(err => {
+        console.error('后台同步到 Supabase 失败:', err);
+      });
+    }
+
     return res.json({ success: true });
   } catch (error) {
     console.error('Save template error:', error);
@@ -632,8 +741,11 @@ app.post('/api/save-template', (req, res) => {
 
 app.get('/api/templates', (req, res) => {
   try {
+    console.log('获取模板列表...');
+    console.log('templatesDir:', templatesDir);
     const templates = [];
     const files = fs.readdirSync(templatesDir);
+    console.log('找到的文件:', files);
 
     files.forEach((file) => {
       if (!file.endsWith('.json')) {
@@ -646,11 +758,13 @@ app.get('/api/templates', (req, res) => {
 
       templates.push({
         templateId: templateData.templateId,
+        name: templateData.name,
         image: templateData.image,
         cellsCount: templateData.cells.length
       });
     });
 
+    console.log('返回的模板列表:', templates);
     return res.json(templates);
   } catch (error) {
     console.error('Get templates error:', error);
@@ -672,6 +786,78 @@ app.get('/api/template/:id', (req, res) => {
   } catch (error) {
     console.error('Get template error:', error);
     return res.status(500).json({ error: 'Failed to fetch template' });
+  }
+});
+
+// 重命名模板
+app.put('/api/template/:id/rename', requireAdminAuth, (req, res) => {
+  try {
+    const templateId = req.params.id;
+    const { name } = req.body;
+
+    if (!name || !name.trim()) {
+      return res.status(400).json({ error: '模板名称不能为空' });
+    }
+
+    const templatePath = path.join(templatesDir, `${templateId}.json`);
+
+    if (!fs.existsSync(templatePath)) {
+      return res.status(404).json({ error: '模板不存在' });
+    }
+
+    const templateData = JSON.parse(fs.readFileSync(templatePath, 'utf8'));
+    templateData.name = name.trim();
+    fs.writeFileSync(templatePath, JSON.stringify(templateData, null, 2));
+
+    // 如果启用了 Supabase 自动同步，则同步到云端
+    if (supabaseClient.isSyncEnabled()) {
+      supabaseClient.syncTemplateToSupabase(templateData).catch(err => {
+        console.error('后台同步到 Supabase 失败:', err);
+      });
+    }
+
+    return res.json({ success: true, name: templateData.name });
+  } catch (error) {
+    console.error('Rename template error:', error);
+    return res.status(500).json({ error: '重命名失败' });
+  }
+});
+
+// 删除模板
+app.delete('/api/template/:id', requireAdminAuth, (req, res) => {
+  try {
+    const templateId = req.params.id;
+    const templatePath = path.join(templatesDir, `${templateId}.json`);
+
+    if (!fs.existsSync(templatePath)) {
+      return res.status(404).json({ error: '模板不存在' });
+    }
+
+    // 读取模板数据以获取图片路径
+    const templateData = JSON.parse(fs.readFileSync(templatePath, 'utf8'));
+
+    // 删除模板数据文件
+    fs.unlinkSync(templatePath);
+
+    // 删除关联的图片文件
+    if (templateData.image) {
+      const imagePath = path.join(__dirname, templateData.image);
+      if (fs.existsSync(imagePath)) {
+        fs.unlinkSync(imagePath);
+      }
+    }
+
+    // 如果启用了 Supabase 自动同步，则从云端删除
+    if (supabaseClient.isSyncEnabled()) {
+      supabaseClient.deleteTemplateFromSupabase(templateId).catch(err => {
+        console.error('从 Supabase 删除失败:', err);
+      });
+    }
+
+    return res.json({ success: true });
+  } catch (error) {
+    console.error('Delete template error:', error);
+    return res.status(500).json({ error: '删除失败' });
   }
 });
 
@@ -855,8 +1041,259 @@ app.post('/api/generate-style', upload.single('image'), async (req, res) => {
   }
 });
 
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
   console.log(`Server running at http://localhost:${PORT}`);
   console.log(`API key configured: ${QWEN_API_KEY ? 'yes' : 'no'}`);
+  console.log(`Admin password configured: ${ADMIN_PASSWORD ? 'yes' : 'no'}`);
+});
+
+// 增加超时时间
+server.timeout = 300000; // 5分钟
+server.keepAliveTimeout = 65000; // 65秒
+server.headersTimeout = 66000; // 66秒
+
+
+// ============================================
+// 管理员权限验证 API（轻量级，无需登录）
+// ============================================
+
+/**
+ * 验证管理员密码
+ */
+app.post('/api/admin/verify', (req, res) => {
+  try {
+    const { password } = req.body;
+    
+    console.log('收到密码验证请求');
+    console.log('输入的密码:', password);
+    console.log('配置的ADMIN_PASSWORD:', ADMIN_PASSWORD ? '已设置' : '未设置');
+    
+    if (!password) {
+      console.log('错误：未提供密码');
+      return res.status(400).json({ 
+        success: false,
+        error: '请输入密码' 
+      });
+    }
+    
+    // 如果没有设置管理员密码，默认允许访问（开发模式）
+    if (!ADMIN_PASSWORD) {
+      console.log('警告：未设置ADMIN_PASSWORD，允许访问（开发模式）');
+      return res.json({
+        success: true,
+        message: '管理员模式已启用（未设置密码）'
+      });
+    }
+    
+    // 验证密码
+    if (password === ADMIN_PASSWORD) {
+      console.log('密码验证成功！');
+      return res.json({
+        success: true,
+        message: '验证成功，管理员模式已启用'
+      });
+    } else {
+      console.log('密码验证失败：密码不匹配');
+      return res.status(401).json({
+        success: false,
+        error: '密码错误'
+      });
+    }
+  } catch (error) {
+    console.error('验证管理员密码失败:', error);
+    return res.status(500).json({ 
+      success: false,
+      error: '验证失败' 
+    });
+  }
+});
+
+/**
+ * 检查是否配置了管理员密码
+ */
+app.get('/api/admin/config', (req, res) => {
+  return res.json({
+    success: true,
+    hasPassword: !!ADMIN_PASSWORD
+  });
+});
+
+
+// ============================================
+// Supabase 相关 API 路由
+// ============================================
+
+/**
+ * 检查 Supabase 连接状态
+ */
+app.get('/api/supabase/status', (req, res) => {
+  try {
+    const available = supabaseClient.isSupabaseAvailable();
+    const syncEnabled = supabaseClient.isSyncEnabled();
+    
+    return res.json({
+      success: true,
+      available,
+      syncEnabled,
+      message: available 
+        ? (syncEnabled ? 'Supabase 已连接并启用自动同步' : 'Supabase 已连接但未启用自动同步')
+        : 'Supabase 未配置'
+    });
+  } catch (error) {
+    console.error('检查 Supabase 状态失败:', error);
+    return res.status(500).json({ 
+      success: false,
+      error: 'Failed to check Supabase status' 
+    });
+  }
+});
+
+/**
+ * 切换自动同步开关
+ */
+app.post('/api/supabase/toggle-sync', (req, res) => {
+  try {
+    const { enable } = req.body;
+    
+    if (typeof enable !== 'boolean') {
+      return res.status(400).json({ error: 'Invalid parameter: enable must be boolean' });
+    }
+    
+    // 更新环境变量（注意：这只会影响当前进程）
+    process.env.ENABLE_SUPABASE_SYNC = enable ? 'true' : 'false';
+    
+    return res.json({
+      success: true,
+      syncEnabled: enable,
+      message: `自动同步已${enable ? '开启' : '关闭'}`
+    });
+  } catch (error) {
+    console.error('切换同步开关失败:', error);
+    return res.status(500).json({ error: 'Failed to toggle sync' });
+  }
+});
+
+/**
+ * 同步单个模板到 Supabase
+ */
+app.post('/api/supabase/sync-template', async (req, res) => {
+  try {
+    const { templateId } = req.body;
+    
+    if (!templateId) {
+      return res.status(400).json({ error: 'Missing templateId' });
+    }
+    
+    // 从本地文件读取模板数据
+    const templatePath = path.join(templatesDir, `${templateId}.json`);
+    if (!fs.existsSync(templatePath)) {
+      return res.status(404).json({ error: 'Template not found' });
+    }
+    
+    const templateData = JSON.parse(fs.readFileSync(templatePath, 'utf8'));
+    
+    // 同步到 Supabase
+    const result = await supabaseClient.syncTemplateToSupabase(templateData);
+    
+    if (result) {
+      return res.json({
+        success: true,
+        message: '模板已成功同步到 Supabase',
+        data: result
+      });
+    } else {
+      return res.status(500).json({
+        success: false,
+        message: '同步失败，请检查 Supabase 配置'
+      });
+    }
+  } catch (error) {
+    console.error('同步模板失败:', error);
+    return res.status(500).json({ error: 'Failed to sync template' });
+  }
+});
+
+/**
+ * 批量同步所有模板到 Supabase
+ */
+app.post('/api/supabase/sync-all', async (req, res) => {
+  try {
+    // 读取所有本地模板
+    const templates = [];
+    const files = fs.readdirSync(templatesDir);
+    
+    for (const file of files) {
+      if (!file.endsWith('.json')) continue;
+      
+      try {
+        const templateData = JSON.parse(
+          fs.readFileSync(path.join(templatesDir, file), 'utf8')
+        );
+        templates.push(templateData);
+      } catch (err) {
+        console.error(`读取模板文件 ${file} 失败:`, err);
+      }
+    }
+    
+    if (templates.length === 0) {
+      return res.json({
+        success: true,
+        message: '没有可同步的模板',
+        stats: { success: 0, failed: 0, total: 0 }
+      });
+    }
+    
+    // 批量同步
+    const stats = await supabaseClient.syncAllTemplatesToSupabase(templates);
+    
+    return res.json({
+      success: true,
+      message: `批量同步完成: 成功 ${stats.success}, 失败 ${stats.failed}`,
+      stats
+    });
+  } catch (error) {
+    console.error('批量同步失败:', error);
+    return res.status(500).json({ error: 'Failed to sync all templates' });
+  }
+});
+
+/**
+ * 从 Supabase 获取模板列表（可选，用于对比或迁移）
+ */
+app.get('/api/supabase/templates', async (req, res) => {
+  try {
+    const templates = await supabaseClient.getTemplatesFromSupabase();
+    
+    return res.json({
+      success: true,
+      count: templates.length,
+      templates
+    });
+  } catch (error) {
+    console.error('从 Supabase 获取模板列表失败:', error);
+    return res.status(500).json({ error: 'Failed to fetch templates from Supabase' });
+  }
+});
+
+/**
+ * 从 Supabase 获取单个模板详情
+ */
+app.get('/api/supabase/template/:id', async (req, res) => {
+  try {
+    const templateId = req.params.id;
+    const template = await supabaseClient.getTemplateFromSupabase(templateId);
+    
+    if (!template) {
+      return res.status(404).json({ error: 'Template not found in Supabase' });
+    }
+    
+    return res.json({
+      success: true,
+      template
+    });
+  } catch (error) {
+    console.error('从 Supabase 获取模板详情失败:', error);
+    return res.status(500).json({ error: 'Failed to fetch template from Supabase' });
+  }
 });
 
