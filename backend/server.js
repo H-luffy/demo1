@@ -51,7 +51,12 @@ function requireAdminAuth(req, res, next) {
 }
 
 app.use(cors({
-  origin: ['http://localhost:3000', 'http://127.0.0.1:3000'],
+  origin: [
+    'http://localhost:3000',
+    'http://127.0.0.1:3000',
+    // 添加你的 Vercel 前端 URL，部署后需要替换为实际的 Vercel URL
+    // 例如：'https://your-app.vercel.app'
+  ],
   credentials: true
 }));
 app.use(bodyParser.json({ limit: '50mb' }));
@@ -1075,16 +1080,22 @@ app.post('/api/generate-style', upload.single('image'), async (req, res) => {
   }
 });
 
-const server = app.listen(PORT, () => {
-  console.log(`Server running at http://localhost:${PORT}`);
-  console.log(`API key configured: ${QWEN_API_KEY ? 'yes' : 'no'}`);
-  console.log(`Admin password configured: ${ADMIN_PASSWORD ? 'yes' : 'no'}`);
-});
+// 只在本地开发时启动服务器
+if (require.main === module) {
+  const server = app.listen(PORT, () => {
+    console.log(`Server running at http://localhost:${PORT}`);
+    console.log(`API key configured: ${QWEN_API_KEY ? 'yes' : 'no'}`);
+    console.log(`Admin password configured: ${ADMIN_PASSWORD ? 'yes' : 'no'}`);
+  });
 
-// 增加超时时间
-server.timeout = 300000; // 5分钟
-server.keepAliveTimeout = 65000; // 65秒
-server.headersTimeout = 66000; // 66秒
+  // 增加超时时间
+  server.timeout = 300000; // 5分钟
+  server.keepAliveTimeout = 65000; // 65秒
+  server.headersTimeout = 66000; // 66秒
+}
+
+// 导出 Express 应用供 Vercel 使用
+module.exports = app;
 
 
 // ============================================
