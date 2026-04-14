@@ -3,6 +3,9 @@
   "version": "1.0.0",
   "description": "课表模板编辑系统后端",
   "main": "server.js",
+  "engines": {
+    "node": "24.x"
+  },
   "scripts": {
     "start": "node server.js",
     "dev": "nodemon server.js"

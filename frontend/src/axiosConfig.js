@@ -1,8 +1,11 @@
 import axios from 'axios';
 
+// 根据环境变量或默认值设置 API URL
+const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001';
+
 // 创建 axios 实例
 const api = axios.create({
-  baseURL: 'http://localhost:3001',
+  baseURL: API_URL,
   timeout: 120000, // 2分钟超时
   maxContentLength: 50 * 1024 * 1024, // 50MB
   maxBodyLength: 50 * 1024 * 1024, // 50MB
