@@ -1,5 +1,4 @@
 {
   "version": 2,
-  "buildCommand": "bash vercel-build.sh",
-  "outputDirectory": "build"
+  "framework": "create-react-app"
 }
