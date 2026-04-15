@@ -187,11 +187,15 @@ git push -u origin main
 | 变量名 | 值 | 说明 |
 |--------|-----|------|
 | REACT_APP_API_URL | 你的后端 URL | 例如：https://schedule-template-backend.vercel.app |
+| REACT_APP_SUPABASE_URL | https://cehpafitqckmzufwdqqb.supabase.co | Supabase 项目 URL |
+| REACT_APP_SUPABASE_ANON_KEY | sb_publishable_syWN0lfOcNPQ5vjSE6FAMA_lnvCWzfU | Supabase 匿名密钥 |
+| REACT_APP_ENABLE_SUPABASE_SYNC | true | 启用 Supabase 同步 |
 
 **重要提示：**
 - 确保使用完整的 URL（包含 https://）
 - 不要在 URL 末尾添加斜杠
 - 前端环境变量必须以 `REACT_APP_` 开头
+- 所有 Supabase 配置与后端保持一致
 
 ### 步骤 4: 部署项目
 
