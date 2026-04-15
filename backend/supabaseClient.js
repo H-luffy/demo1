@@ -14,10 +14,28 @@ let supabase = null;
 
 // 初始化 Supabase 客户端
 if (supabaseUrl && supabaseKey) {
-  supabase = createClient(supabaseUrl, supabaseKey);
-  console.log('✅ Supabase 客户端已初始化');
-  console.log(`   URL: ${supabaseUrl}`);
-  console.log(`   自动同步: ${enableSync ? '开启' : '关闭'}`);
+  try {
+    supabase = createClient(supabaseUrl, supabaseKey, {
+      auth: {
+        persistSession: false,
+        autoRefreshToken: false
+      },
+      db: {
+        schema: 'public'
+      },
+      global: {
+        headers: {
+          'x-application-name': 'schedule-template-backend'
+        }
+      }
+    });
+    console.log('✅ Supabase 客户端已初始化');
+    console.log(`   URL: ${supabaseUrl}`);
+    console.log(`   自动同步: ${enableSync ? '开启' : '关闭'}`);
+  } catch (error) {
+    console.error('❌ Supabase 客户端初始化失败:', error.message);
+    supabase = null;
+  }
 } else {
   console.warn('⚠️  Supabase 未配置，将仅使用本地文件存储');
   console.warn('   请在 .env 文件中设置 SUPABASE_URL 和 SUPABASE_ANON_KEY');
@@ -114,26 +132,49 @@ async function syncTemplateToSupabase(templateData) {
  * @returns {Promise<Array>} 模板列表
  */
 async function getTemplatesFromSupabase() {
+  console.log('=== 开始从 Supabase 获取模板列表 ===');
+
   if (!isSupabaseAvailable()) {
+    console.warn('Supabase 不可用，返回空数组');
     return [];
   }
 
+  // 设置超时控制（8秒）
+  const timeout = new Promise((_, reject) => {
+    setTimeout(() => {
+      reject(new Error('Supabase 查询超时'));
+    }, 8000);
+  });
+
   try {
-    const { data, error } = await supabase
+    console.log('执行 Supabase 查询...');
+    const queryPromise = supabase
       .from('templates')
       .select('*')
       .eq('is_public', true)
       .order('created_at', { ascending: false });
 
+    const { data, error } = await Promise.race([queryPromise, timeout]);
+
     if (error) {
-      console.error('从 Supabase 获取模板列表失败:', error);
+      console.error('从 Supabase 获取模板列表失败:');
+      console.error('错误代码:', error.code);
+      console.error('错误信息:', error.message);
+      console.error('错误详情:', error.details);
+      console.error('错误提示:', error.hint);
       return [];
     }
 
+    console.log(`从 Supabase 成功获取 ${data?.length || 0} 个模板`);
     return data || [];
   } catch (error) {
-    console.error('从 Supabase 获取模板列表异常:', error);
+    console.error('从 Supabase 获取模板列表异常:');
+    console.error('错误类型:', error.constructor.name);
+    console.error('错误信息:', error.message);
+    console.error('错误堆栈:', error.stack);
     return [];
+  } finally {
+    console.log('=== Supabase 查询完成 ===');
   }
 }
 

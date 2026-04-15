@@ -9,7 +9,27 @@ const axios = require('axios');
 const supabaseClient = require('./supabaseClient');
 
 const app = express();
-const PORT = 3001;
+const PORT = process.env.PORT || 3001;
+
+// 请求日志中间件
+app.use((req, res, next) => {
+  console.log('=== 请求日志 ===');
+  console.log('时间:', new Date().toISOString());
+  console.log('方法:', req.method);
+  console.log('路径:', req.path);
+  console.log('查询参数:', JSON.stringify(req.query));
+  console.log('================');
+  next();
+});
+
+// 全局错误处理
+app.use((err, req, res, next) => {
+  console.error('=== 全局错误 ===');
+  console.error('错误信息:', err.message);
+  console.error('错误堆栈:', err.stack);
+  console.error('===============');
+  res.status(500).json({ error: 'Internal Server Error', message: err.message });
+});
 
 const QWEN_API_KEY = process.env.QWEN_API_KEY || '';
 const QWEN_TEXT_MODEL = process.env.QWEN_TEXT_MODEL || 'qwen-plus';
@@ -743,14 +763,42 @@ app.post('/api/save-template', requireAdminAuth, async (req, res) => {
   }
 });
 
+// 健康检查端点
+app.get('/api/health', (req, res) => {
+  console.log('=== 健康检查 ===');
+  const health = {
+    status: 'ok',
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime(),
+    environment: process.env.NODE_ENV || 'development',
+    supabase: {
+      available: supabaseClient.isSupabaseAvailable(),
+      syncEnabled: supabaseClient.isSyncEnabled()
+    }
+  };
+  console.log('健康状态:', health);
+  res.json(health);
+});
+
 app.get('/api/templates', async (req, res) => {
+  console.log('=== 开始获取模板列表 ===');
+
+  // 设置超时控制（10秒）
+  const timeout = setTimeout(() => {
+    console.error('获取模板列表超时');
+    if (!res.headersSent) {
+      res.status(504).json({ error: 'Request timeout' });
+    }
+  }, 10000);
+
   try {
-    console.log('获取模板列表...');
+    console.log('Supabase同步状态:', supabaseClient.isSyncEnabled());
 
     // 如果启用了 Supabase 同步，优先从 Supabase 获取数据
     if (supabaseClient.isSyncEnabled()) {
       console.log('从 Supabase 获取模板列表...');
       const supabaseTemplates = await supabaseClient.getTemplatesFromSupabase();
+      console.log('从 Supabase 获取到模板数量:', supabaseTemplates.length);
 
       if (supabaseTemplates.length > 0) {
         const templates = supabaseTemplates.map(template => ({
@@ -760,6 +808,7 @@ app.get('/api/templates', async (req, res) => {
           cellsCount: template.cells_count || 0
         }));
         console.log('从 Supabase 返回的模板列表:', templates);
+        clearTimeout(timeout);
         return res.json(templates);
       }
     }
@@ -768,31 +817,51 @@ app.get('/api/templates', async (req, res) => {
     console.log('从本地文件系统获取模板列表...');
     console.log('templatesDir:', templatesDir);
     const templates = [];
-    const files = fs.readdirSync(templatesDir);
-    console.log('找到的文件:', files);
 
-    files.forEach((file) => {
-      if (!file.endsWith('.json')) {
-        return;
-      }
+    try {
+      const files = fs.readdirSync(templatesDir);
+      console.log('找到的文件:', files);
 
-      const templateData = JSON.parse(
-        fs.readFileSync(path.join(templatesDir, file), 'utf8')
-      );
+      files.forEach((file) => {
+        if (!file.endsWith('.json')) {
+          return;
+        }
 
-      templates.push({
-        templateId: templateData.templateId,
-        name: templateData.name,
-        image: templateData.image,
-        cellsCount: templateData.cells.length
+        const templateData = JSON.parse(
+          fs.readFileSync(path.join(templatesDir, file), 'utf8')
+        );
+
+        templates.push({
+          templateId: templateData.templateId,
+          name: templateData.name,
+          image: templateData.image,
+          cellsCount: templateData.cells.length
+        });
       });
-    });
+    } catch (fsError) {
+      console.error('读取本地文件系统失败:', fsError.message);
+      console.log('返回空模板列表');
+      templates.length = 0; // 确保返回空数组
+    }
 
     console.log('返回的模板列表:', templates);
+    clearTimeout(timeout);
     return res.json(templates);
   } catch (error) {
-    console.error('Get templates error:', error);
-    return res.status(500).json({ error: 'Failed to fetch templates' });
+    clearTimeout(timeout);
+    console.error('=== 获取模板列表失败 ===');
+    console.error('错误类型:', error.constructor.name);
+    console.error('错误信息:', error.message);
+    console.error('错误堆栈:', error.stack);
+    console.error('=====================');
+
+    if (!res.headersSent) {
+      return res.status(500).json({ 
+        error: 'Failed to fetch templates',
+        message: error.message,
+        type: error.constructor.name
+      });
+    }
   }
 });
 
