@@ -54,8 +54,10 @@ app.use(cors({
   origin: [
     'http://localhost:3000',
     'http://127.0.0.1:3000',
-    // 添加你的 Vercel 前端 URL，部署后需要替换为实际的 Vercel URL
-    // 例如：'https://your-app.vercel.app'
+    // 部署到Vercel后，在此处添加你的前端Vercel URL
+    // 例如：'https://schedule-template-frontend.vercel.app'
+    // 部署后请取消注释并替换为实际的URL
+    // 'https://your-frontend-url.vercel.app'
   ],
   credentials: true
 }));
