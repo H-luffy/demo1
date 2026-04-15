@@ -28,7 +28,8 @@ const TemplateBrowser = ({ isAdmin = false }) => {
         // 加载所有模板图片并转换为Base64
         const imagePromises = templatesData.map(async (template) => {
           try {
-            const imgResponse = await fetch(`http://localhost:3001${template.image}`);
+            const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:3001';
+    const imgResponse = await fetch(`${apiUrl}${template.image}`);
             const blob = await imgResponse.blob();
             const reader = new FileReader();
             return new Promise((resolve) => {

@@ -133,7 +133,8 @@ const TemplateManager = ({ isAdmin = false }) => {
 
       // 加载图片并转换为Base64
       try {
-        const imgResponse = await fetch(`http://localhost:3001${templateData.image}`);
+        const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:3001';
+    const imgResponse = await fetch(`${apiUrl}${templateData.image}`);
         const blob = await imgResponse.blob();
         const reader = new FileReader();
         reader.onloadend = () => {
@@ -603,7 +604,7 @@ const TemplateManager = ({ isAdmin = false }) => {
       {selectedTemplate && (
         <div className="template-editor" ref={imageRef}>
           <img
-            src={imageBase64 || `http://localhost:3001${selectedTemplate.image}`}
+            src={imageBase64 || `${process.env.REACT_APP_API_URL || 'http://localhost:3001'}${selectedTemplate.image}`}
             alt="模板"
             onMouseDown={mode === 'edit' ? undefined : handleImageMouseDown}
             onMouseMove={mode === 'edit' ? handleEditMouseMove : handleImageMouseMove}
@@ -902,7 +903,7 @@ const TemplateManager = ({ isAdmin = false }) => {
                 }}
               >
                 <img
-                  src={`http://localhost:3001${template.image}`}
+                  src={`${process.env.REACT_APP_API_URL || 'http://localhost:3001'}${template.image}`}
                   alt={template.name || `模板 #${template.templateId}`}
                   style={{
                     width: '100%',

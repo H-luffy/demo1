@@ -28,7 +28,8 @@ const TemplateList = ({ isAdmin = false }) => {
         // 加载所有模板图片并转换为Base64
         const imagePromises = templatesData.map(async (template) => {
           try {
-            const imageUrl = `http://localhost:3001${template.image}`;
+            const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:3001';
+            const imageUrl = `${apiUrl}${template.image}`;
             console.log('加载图片:', imageUrl);
             const imgResponse = await fetch(imageUrl);
             if (!imgResponse.ok) {
@@ -243,7 +244,7 @@ const TemplateList = ({ isAdmin = false }) => {
               </div>
             )}
             <img
-              src={images[template.templateId] || `http://localhost:3001${template.image}`}
+              src={images[template.templateId] || `${process.env.REACT_APP_API_URL || 'http://localhost:3001'}${template.image}`}
               alt={`模板 ${template.templateId}`}
             />
             <div className="template-card-body">

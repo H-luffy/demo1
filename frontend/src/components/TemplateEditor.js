@@ -44,7 +44,8 @@ const TemplateEditor = () => {
         const templateData = response.data;
         
         // 加载图片并转换为Base64
-        const imgResponse = await fetch(`http://localhost:3001${templateData.image}`);
+        const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:3001';
+        const imgResponse = await fetch(`${apiUrl}${templateData.image}`);
         const blob = await imgResponse.blob();
         
         // 创建Image对象获取原始尺寸
