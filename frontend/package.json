@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "engines": {
-    "node": "24.x"
+    "node": "18.x"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.102.1",
@@ -19,6 +19,7 @@
     "tailwind-merge": "^2.0.0"
   },
   "scripts": {
+    "prebuild": "chmod +x node_modules/.bin/react-scripts || echo 'Permission fix not needed'",
     "start": "react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",
